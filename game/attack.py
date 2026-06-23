@@ -414,10 +414,26 @@ class AttackManager:
         if not page:
             return
         self.farm_assistant_targets.update(Extractor.farm_assistant_targets(page))
+        # if no targets found, dump the page for inspection
+        if not self.farm_assistant_targets:
+            try:
+                FileManager.save_text_file(page.text if hasattr(page, 'text') else str(page), f"cache/debug/farm_assistant_{self.village_id}.html")
+                self.logger.debug("Saved farm assistant page to cache/debug/farm_assistant_%s.html for inspection", self.village_id)
+            except Exception:
+                pass
+        # debug: log how many targets were found on first page
+        try:
+            self.logger.debug("Loaded %d farm assistant targets from %s", len(self.farm_assistant_targets), url)
+        except Exception:
+            pass
         for pagination_url in Extractor.farm_assistant_pagination(page):
             next_page = self.wrapper.get_url(pagination_url)
             if next_page:
                 self.farm_assistant_targets.update(Extractor.farm_assistant_targets(next_page))
+                try:
+                    self.logger.debug("Loaded %d farm assistant targets after page %s", len(self.farm_assistant_targets), pagination_url)
+                except Exception:
+                    pass
         self.farm_assistant_targets_loaded = True
 
     def get_farm_assistant_link(self, vid):
@@ -425,6 +441,7 @@ class AttackManager:
         vid = str(vid)
         target = self.farm_assistant_targets.get(vid)
         if not target:
+            self.logger.debug("No farm assistant target entry for %s", vid)
             return None
         wall = target.get("wall", 0)
         if wall < self.farm_min_wall or wall > self.farm_max_wall:
@@ -433,9 +450,11 @@ class AttackManager:
         if button == "AUTO":
             button = "A" if wall >= self.farm_assistant_auto_wall_threshold else "B"
         if button in target["links"]:
+            self.logger.debug("Using farm assistant link for %s button %s -> %s", vid, button, target['links'][button])
             return target["links"][button]
         for fallback in ["A", "B", "C"]:
             if fallback in target["links"]:
+                self.logger.debug("Using farm assistant fallback link for %s button %s -> %s", vid, fallback, target['links'][fallback])
                 return target["links"][fallback]
         return None
 
@@ -447,6 +466,7 @@ class AttackManager:
             )
             return False
         pre_attack = self.wrapper.get_url(link)
+        self.logger.debug("Fetched assistant pre-attack page for %s via %s", vid, link)
         if not pre_attack:
             return False
         pre_data = {}

@@ -229,7 +229,8 @@ class Extractor:
         targets = {}
         rows = re.findall(r'(?s)<tr[^>]*>(.*?)</tr>', res)
         for row in rows:
-            if 'farm_icon_' not in row:
+            # quick skip if no farm related tokens
+            if 'farm' not in row and 'farm_icon' not in row and 'am_farm' not in row:
                 continue
             tds = re.findall(r'(?s)<td[^>]*>(.*?)</td>', row)
             wall = 0
@@ -237,16 +238,51 @@ class Extractor:
                 wall_text = re.sub(r'<.*?>', '', tds[6]).strip()
                 digits = re.findall(r'-?\d+', wall_text)
                 if digits:
-                    wall = int(digits[0])
-            for action, href in re.findall(r'<a[^>]+class="[^"]*farm_icon_([abc])[^"]*"[^>]+href="([^"]+)"', row):
-                match = re.search(r'farm_icon_[abc]=(\d+)', href)
-                if not match:
-                    match = re.search(r'target=(\d+)', href)
-                if not match:
+                    try:
+                        wall = int(digits[0])
+                    except Exception:
+                        wall = 0
+
+            # find all anchor hrefs in the row
+            anchors = re.findall(r'(?s)<a[^>]+href="([^\"]+)"[^>]*>(.*?)</a>', row)
+            for href, inner in anchors:
+                action = None
+                # try to find action letter in href first
+                m = re.search(r'farm[_-]?icon[_-]?([abc])', href, re.I)
+                if m:
+                    action = m.group(1)
+                else:
+                    # try inner HTML (image classes or text)
+                    m2 = re.search(r'farm[_-]?icon[_-]?([abc])', inner, re.I)
+                    if m2:
+                        action = m2.group(1)
+                    else:
+                        # fallback: look for class attributes in the whole row mentioning farm_icon and letter
+                        m3 = re.search(r'farm[_-]?icon[^\w]*([abc])', row, re.I)
+                        if m3:
+                            action = m3.group(1)
+
+                if not action:
                     continue
-                vid = match.group(1)
-                target = targets.setdefault(vid, {'wall': wall, 'links': {}})
+
+                # extract village id from href using common params
+                vid = None
+                for regex in [r'farm[_-]?icon[_-]?[abc]=(\d+)', r'target=(\d+)', r'village=(\d+)', r'target_id=(\d+)']:
+                    mm = re.search(regex, href)
+                    if mm:
+                        vid = mm.group(1)
+                        break
+                if not vid:
+                    # try to find any 5+ digit number which might be vid
+                    mm2 = re.search(r'(\d{4,7})', href)
+                    if mm2:
+                        vid = mm2.group(1)
+                if not vid:
+                    continue
+
+                target = targets.setdefault(str(vid), {'wall': wall, 'links': {}})
                 target['links'][action.upper()] = href
+
         return targets
 
     @staticmethod
