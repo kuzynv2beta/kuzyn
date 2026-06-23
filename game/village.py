@@ -431,34 +431,36 @@ class Village:
         )
         # Load farms config with sensible defaults without spamming warnings
         farms_conf = self.config.get("farms") if isinstance(self.config, dict) else None
-        if farms_conf is None:
-            # section missing: apply defaults silently
-            self.attack.farm_maxpoints = 1080
-            self.attack.farm_radius = 50
-            self.attack.farm_default_wait = 1200
-            self.attack.farm_high_prio_wait = 1800
-            self.attack.farm_low_prio_wait = 7200
-            self.attack.scout_farm_amount = 5
-            self.attack.farm_assistant = False
-            self.attack.farm_assistant_button = "AUTO"
-            self.attack.farm_assistant_auto_wall_threshold = 1
-            self.attack.farm_min_wall = 0
-            self.attack.farm_max_wall = 1000
-        else:
-            # Use dict.get to avoid emitting warnings for missing individual keys
-            self.attack.farm_maxpoints = farms_conf.get("max_points", 1080)
-            self.attack.farm_radius = farms_conf.get("search_radius", 50)
-            self.attack.farm_default_wait = farms_conf.get("default_away_time", 1200)
-            self.attack.farm_high_prio_wait = farms_conf.get("full_loot_away_time", 1800)
-            self.attack.farm_low_prio_wait = farms_conf.get("low_loot_away_time", 7200)
-            self.attack.scout_farm_amount = farms_conf.get("farm_scout_amount", 5)
+        assistant_conf = self.config.get("farm_assistant") if isinstance(self.config, dict) else None
+
+        def _get(key, default=None):
+            # prefer assistant_conf, fallback to farms_conf
+            if assistant_conf and key in assistant_conf:
+                return assistant_conf.get(key, default)
+            if farms_conf and key in farms_conf:
+                return farms_conf.get(key, default)
+            return default
+
+        # apply defaults or configured values
+        self.attack.farm_maxpoints = _get("max_points", 1080)
+        self.attack.farm_radius = _get("search_radius", 50)
+        self.attack.farm_default_wait = _get("default_away_time", 1200)
+        self.attack.farm_high_prio_wait = _get("full_loot_away_time", 1800)
+        self.attack.farm_low_prio_wait = _get("low_loot_away_time", 7200)
+        self.attack.scout_farm_amount = _get("farm_scout_amount", 5)
+        # assistant enable flag: assistant.enabled or farms.farm_assistant or farms.farm
+        self.attack.farm_assistant = False
+        if assistant_conf:
+            self.attack.farm_assistant = assistant_conf.get("enabled", assistant_conf.get("farm_assistant", False))
+        elif farms_conf:
             self.attack.farm_assistant = farms_conf.get("farm_assistant", False) or farms_conf.get("farm", False)
-            self.attack.farm_assistant_button = farms_conf.get("farm_assistant_button", "AUTO")
-            self.attack.farm_assistant_auto_wall_threshold = farms_conf.get(
-                "farm_assistant_wall_threshold", 1
-            )
-            self.attack.farm_min_wall = farms_conf.get("farm_assistant_min_wall", 0)
-            self.attack.farm_max_wall = farms_conf.get("farm_assistant_max_wall", 1000)
+
+        self.attack.farm_assistant_button = _get("farm_assistant_button", "AUTO")
+        self.attack.farm_assistant_auto_wall_threshold = _get("farm_assistant_wall_threshold", 1)
+        self.attack.farm_min_wall = _get("farm_assistant_min_wall", 0)
+        self.attack.farm_max_wall = _get("farm_assistant_max_wall", 1000)
+        self.attack.max_farms = _get("max_farms", 25)
+        self.attack.farm_minpoints = _get("min_points", 24)
         if self.current_unit_entry:
             self.attack.template = self.current_unit_entry["farm"]
 
