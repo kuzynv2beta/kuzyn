@@ -46,6 +46,9 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
 <script>
     var map_data = {{map | safe}};
     var grid = document.getElementById('grid');
@@ -98,4 +101,5 @@
         generateGrid(Object.keys(map_data.grid).length, Object.keys(map_data.grid).length, map_data);
     }
 </script>
+{% endblock %}
 {% endblock %}
