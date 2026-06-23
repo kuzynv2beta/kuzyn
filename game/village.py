@@ -12,6 +12,7 @@ from game.attack import AttackManager
 from game.buildingmanager import BuildingManager
 from game.defence_manager import DefenceManager
 from game.map import Map
+from game.reports import ReportManager
 from game.resources import ResourceManager
 from game.snobber import SnobManager
 from game.troopmanager import TroopManager
@@ -416,6 +417,12 @@ class Village:
         """
         Sets various options for farming management
         """
+        # Ensure attack manager exists
+        if not self.attack:
+            self.attack = AttackManager(wrapper=self.wrapper, village_id=self.village_id, troopmanager=self.units)
+            # attach report manager used for safe checks
+            self.attack.repman = ReportManager(wrapper=self.wrapper, village_id=self.village_id)
+
         self.attack.target_high_points = self.get_config(
             section="farms", parameter="attack_higher_points", default=False
         )
@@ -459,8 +466,65 @@ class Village:
         """
         Runs the farming logic
         """
-        self.logger.debug("Farming logic disabled: skipping map-based farm attacks.")
-        return
+        # Auto-send assistant attacks if configured
+        try:
+            auto_send = self.get_config(section="farms", parameter="auto_send_assistant_attacks", default=False)
+        except Exception:
+            auto_send = False
+
+        if not auto_send:
+            self.logger.debug("Auto-send assistant attacks disabled in config.")
+            return
+
+        if not self.attack or not self.attack.farm_assistant:
+            self.logger.debug("Farm assistant not enabled for village %s", self.village_id)
+            return
+
+        # ensure farm assistant targets are loaded
+        self.attack.ensure_farm_assistant_targets()
+
+        # get a fresh local map (needed for coordinates)
+        try:
+            m = Map(wrapper=self.wrapper, village_id=self.village_id)
+            m.get_map()
+            self.attack.map = m
+        except Exception:
+            self.logger.debug("Unable to fetch map for assistant attacks")
+
+        # iterate over assistant targets and send attacks up to max_farms
+        sent = 0
+        targets = list(self.attack.farm_assistant_targets.keys()) if self.attack.farm_assistant_targets else []
+        for vid in targets:
+            if sent >= self.attack.max_farms:
+                break
+
+            # check troops availability
+            if type(self.attack.template) != dict:
+                continue
+            missing = self.attack.enough_in_village(self.attack.template)
+            if missing:
+                self.logger.debug("Not enough troops for assistant attack: %s", missing)
+                break
+
+            cached = self.attack.can_attack(vid=vid, clear=False)
+            if cached:
+                res = self.attack.attack_with_assistant(vid, troops=self.attack.template)
+                if res:
+                    # decrement local troop counts
+                    for u in self.attack.template:
+                        if u in self.units.troops:
+                            try:
+                                self.units.troops[u] = str(int(self.units.troops[u]) - self.attack.template[u])
+                            except Exception:
+                                pass
+                    # record attack
+                    hp = cached["high_profile"] if type(cached) == dict and "high_profile" in cached else False
+                    lp = cached["low_profile"] if type(cached) == dict and "low_profile" in cached else False
+                    self.attack.attacked(vid, scout=False, safe=True, high_profile=hp, low_profile=lp)
+                    sent += 1
+
+        if sent:
+            self.logger.info("Sent %d assistant farm attacks from village %s", sent, self.village_id)
 
     def do_gather(self):
         """

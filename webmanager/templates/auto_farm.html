@@ -1,0 +1,34 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6">
+        <h4>Auto Farm Assistant</h4>
+        <p>Automatyczne wysyłanie ataków przez Assistant w każdej pętli pracy bota.</p>
+        <div id="auto-farm-status">
+            {% set enabled = data.config.farms.auto_send_assistant_attacks if data and data.config and data.config.farms is defined else False %}
+            {% if enabled %}
+                <button id="auto-farm-toggle" class="btn btn-sm btn-success" data-status="1">Włączone — Wyłącz</button>
+            {% else %}
+                <button id="auto-farm-toggle" class="btn btn-sm btn-warning" data-status="0">Wyłączone — Włącz</button>
+            {% endif %}
+        </div>
+        <p class="small text-muted">Ustawienie również dostępne w pliku konfiguracyjnym.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(function(){
+    $(document).on('click', '#auto-farm-toggle', function(){
+        var status = $(this).data('status');
+        var newVal = status == 1 ? false : true;
+        // Write to config via existing endpoint
+        $.get('/app/config/set', { parameter: 'farms.auto_send_assistant_attacks', value: JSON.stringify(newVal) })
+            .done(function(){ location.reload(); })
+            .fail(function(){ alert('Błąd podczas zapisywania konfiguracji'); });
+    });
+});
+</script>
+{% endblock %}

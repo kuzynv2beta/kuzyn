@@ -267,6 +267,11 @@ def get_village_overview():
     return render_template('villages.html', data=sync())
 
 
+@app.route('/auto_farm', methods=['GET'])
+def get_auto_farm():
+    return render_template('auto_farm.html', data=sync())
+
+
 @app.route('/building_templates', methods=['GET', 'POST'])
 def get_building_templates():
     if request.form.get('new', None):

@@ -84,6 +84,8 @@
     "farm_assistant_wall_threshold": 1,
     "farm_assistant_min_wall": 0,
     "farm_assistant_max_wall": 1000
+    ,
+    "auto_send_assistant_attacks": false
   },
   "market": {
     "auto_trade": true,
