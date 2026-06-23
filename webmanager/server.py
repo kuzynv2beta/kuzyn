@@ -2,7 +2,8 @@ import json
 import os
 import sys
 import traceback
-sys.path.insert(0, "../")
+# Ensure project root is on sys.path regardless of current working directory
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from flask import Flask, jsonify, send_from_directory, request, render_template
 
@@ -310,6 +311,10 @@ def config_set():
 
 
 if len(sys.argv) > 1:
-    app.run(host="localhost", port=sys.argv[1])
+    try:
+        port = int(sys.argv[1])
+    except Exception:
+        port = 5000
+    app.run(host="127.0.0.1", port=port)
 else:
-    app.run()
+    app.run(host="127.0.0.1", port=5000)
