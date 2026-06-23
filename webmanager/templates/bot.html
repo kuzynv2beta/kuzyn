@@ -37,7 +37,7 @@
                         {% for village_id, village in data.bot.items() %}
                             <tr>
                                 <td>{{ village_id }}</td>
-                                <td>{{ village.public.name if village.public is defined else 'Brak nazwy' }}</td>
+                                <td>{% if village.name is defined and village.name %}{{ village.name }}{% elif village.public is defined and village.public.name %}{{ village.public.name }}{% else %}Brak nazwy{% endif %}</td>
                                 <td>{{ village.building_queue | default([]) | length }}</td>
                                 <td>
                                     {% set total = 0 %}
@@ -74,7 +74,9 @@ function renderBotRuntime(data) {
     var html = '<table class="table table-striped table-sm"><thead><tr><th>ID</th><th>Nazwa</th><th>Kolejka budynków</th><th>Łącznie jednostek</th></tr></thead><tbody>';
     $.each(data.bot, function(village_id, village) {
         var name = 'Brak nazwy';
-        if (village && village.public && village.public.name) {
+        if (village && village.name) {
+            name = village.name;
+        } else if (village && village.public && village.public.name) {
             name = village.public.name;
         }
         var queueLength = 0;
