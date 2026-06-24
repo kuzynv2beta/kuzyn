@@ -43,12 +43,12 @@ tr.table-secondary td{background:linear-gradient(180deg,rgba(255,215,0,0.02),rgb
 
 /* Gold panels for units and building queue */
 .gold-panel{
-  background:linear-gradient(180deg,rgba(255,217,122,0.22),rgba(179,135,43,0.18));
-  color:var(--bg); /* use dashboard background color as text color (dark) */
-  border:1px solid rgba(255,215,0,0.12);
+  background:var(--panel); /* match dashboard card background */
+  color:var(--gold-2); /* gold text */
+  border:1px solid rgba(255,215,0,0.08);
   border-radius:6px;
 }
-.gold-panel h5{color:var(--bg);font-weight:700;margin:0 0 .5rem 0}
-.units-list img{height:20px;margin-right:6px;vertical-align:middle}
-.units-list .d-inline-block{color:var(--bg)}
+.gold-panel h5{color:var(--gold-2);font-weight:700;margin:0 0 .5rem 0}
+.units-list img{height:20px;margin-right:6px;vertical-align:middle;filter:brightness(0) invert(1) saturate(2)}
+.units-list .d-inline-block{color:var(--gold-2)}
 
