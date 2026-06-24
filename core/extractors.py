@@ -264,11 +264,14 @@ class Extractor:
 
                 # detect action letter from class attribute or from attributes string
                 class_m = re.search(r'class="([^"]*)"', attrs)
+                disabled = False
                 if class_m:
                     cls = class_m.group(1)
                     m = re.search(r'farm[_-]?icon[_-]?([abc])', cls, re.I)
                     if m:
                         action = m.group(1)
+                    if re.search(r'farm_icon_disabled|start_locked|\bdone\b', cls, re.I):
+                        disabled = True
 
                 # fallback: look inside inner HTML or the whole row
                 if not action:
@@ -328,6 +331,7 @@ class Extractor:
                     'href': href,
                     'onclick': onclick,
                     'usable': usable_link,
+                    'disabled': disabled,
                 }
 
                 # try to detect safety/report status within the row
