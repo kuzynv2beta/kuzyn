@@ -457,13 +457,34 @@ class Village:
         self.attack.farm_max_wall = _get_assistant("farm_assistant_max_wall", 1000)
         # load optional conditional rules for selecting assistant icon/button
         raw_rules = _get_assistant("farm_assistant_rules", [])
+        parsed_rules = []
         try:
             if isinstance(raw_rules, str):
-                parsed_rules = json.loads(raw_rules)
+                parsed_rules = json.loads(raw_rules) or []
             else:
                 parsed_rules = raw_rules or []
         except Exception:
             parsed_rules = []
+
+        # also read three separate rule settings for A/B/C (field/op/value)
+        for btn in ['A', 'B', 'C']:
+            fkey = f"farm_assistant_rule_{btn}_field"
+            okey = f"farm_assistant_rule_{btn}_op"
+            vkey = f"farm_assistant_rule_{btn}_value"
+            f = _get_assistant(fkey, 'none')
+            op = _get_assistant(okey, 'none')
+            val = _get_assistant(vkey, 0)
+            try:
+                # normalize numeric
+                if isinstance(val, str) and val.isdigit():
+                    valn = int(val)
+                else:
+                    valn = int(val)
+            except Exception:
+                valn = 0
+            if f and f != 'none' and op and op != 'none':
+                parsed_rules.append({'button': btn, 'field': f, 'op': op, 'value': valn})
+
         self.attack.farm_assistant_rules = parsed_rules
         self.attack.max_farms = _get_assistant("max_farms", 25)
         if self.current_unit_entry:

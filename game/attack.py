@@ -510,34 +510,48 @@ class AttackManager:
         # Evaluate conditional rules first (if any)
         try:
             rules = getattr(self, 'farm_assistant_rules', []) or []
+            def _cmp(op, left, right):
+                try:
+                    if op == '<':
+                        return left < right
+                    if op == '>':
+                        return left > right
+                    if op == '<=':
+                        return left <= right
+                    if op == '>=':
+                        return left >= right
+                    if op == '==':
+                        return left == right
+                except Exception:
+                    return False
+                return False
+
             for rule in rules:
                 if not isinstance(rule, dict):
                     continue
-                # rule keys: button, min_wall, max_wall, min_distance, max_distance, min_last_attack, max_last_attack
                 match = True
-                # wall checks
+                # Legacy style rules using min_/max_ keys
                 if 'min_wall' in rule and wall < int(rule.get('min_wall', 0)):
                     match = False
                 if 'max_wall' in rule and wall > int(rule.get('max_wall', 0)):
                     match = False
-                # distance checks (requires map with coordinates)
-                if ('min_distance' in rule or 'max_distance' in rule) and getattr(self, 'map', None):
+
+                dist = None
+                if getattr(self, 'map', None) and vid in getattr(self.map, 'map_pos', {}):
                     try:
-                        if vid in getattr(self.map, 'map_pos', {}):
-                            coords = self.map.map_pos[vid]
-                            dist = self.map.get_dist(coords)
-                        else:
-                            # no map coords available, cannot match distance
-                            match = False
-                            dist = None
+                        coords = self.map.map_pos[vid]
+                        dist = self.map.get_dist(coords)
                     except Exception:
-                        match = False
                         dist = None
-                    if match and 'min_distance' in rule and dist is not None and dist < float(rule.get('min_distance')):
-                        match = False
-                    if match and 'max_distance' in rule and dist is not None and dist > float(rule.get('max_distance')):
-                        match = False
-                # last attack checks (uses AttackCache)
+
+                # Legacy distance
+                if 'min_distance' in rule and (dist is None or dist < float(rule.get('min_distance'))):
+                    match = False
+                if 'max_distance' in rule and (dist is None or dist > float(rule.get('max_distance'))):
+                    match = False
+
+                # Legacy last_attack
+                since = None
                 if 'min_last_attack' in rule or 'max_last_attack' in rule:
                     try:
                         cache_entry = AttackCache.get_cache(vid)
@@ -546,12 +560,31 @@ class AttackManager:
                         since = int(_time.time()) - int(last) if last else None
                     except Exception:
                         since = None
-                    if since is None:
+                    if 'min_last_attack' in rule and (since is None or since < int(rule.get('min_last_attack', 0))):
                         match = False
-                    else:
-                        if 'min_last_attack' in rule and since < int(rule.get('min_last_attack', 0)):
+                    if 'max_last_attack' in rule and (since is None or since > int(rule.get('max_last_attack', 0))):
+                        match = False
+
+                # New style: field/op/value
+                if 'field' in rule and 'op' in rule and 'value' in rule:
+                    field = rule.get('field')
+                    op = rule.get('op')
+                    val = rule.get('value')
+                    if field == 'wall':
+                        if not _cmp(op, wall, float(val)):
                             match = False
-                        if 'max_last_attack' in rule and since > int(rule.get('max_last_attack', 0)):
+                    elif field == 'distance':
+                        if dist is None or not _cmp(op, dist, float(val)):
+                            match = False
+                    elif field == 'last_attack':
+                        try:
+                            cache_entry = AttackCache.get_cache(vid)
+                            last = cache_entry.get('last_attack', 0) if cache_entry else 0
+                            import time as _time
+                            since = int(_time.time()) - int(last) if last else None
+                        except Exception:
+                            since = None
+                        if since is None or not _cmp(op, since, float(val)):
                             match = False
 
                 if match and 'button' in rule:

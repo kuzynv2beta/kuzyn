@@ -66,6 +66,25 @@ def pre_process_string(key, value, village_id=None):
         output += '</select>'
         return output
 
+    # Render per-button rule field selects
+    m_field = re.match(r'farm_assistant\.farm_assistant_rule_([ABC])_field$', key)
+    m_op = re.match(r'farm_assistant\.farm_assistant_rule_([ABC])_op$', key)
+    if m_field:
+        options = ['none', 'wall', 'distance', 'last_attack']
+        output = '<select data-type-option="%s" data-type="select" class="form-control">' % key
+        for option in options:
+            output += '<option value="%s" %s>%s</option>' % (option, 'selected' if option == value else '', option)
+        output += '</select>'
+        return output
+    if m_op:
+        options = ["none", "<", ">", "<=", ">=", "=="]
+        labels = {"none": "none", "<": "mniejsza (<)", ">": "większa (>)", "<=": "mniejsza lub równa (<=)", ">=": "większa lub równa (>=)", "==": "równa (==)"}
+        output = '<select data-type-option="%s" data-type="select" class="form-control">' % key
+        for option in options:
+            output += '<option value="%s" %s>%s</option>' % (option, 'selected' if option == value else '', labels.get(option, option))
+        output += '</select>'
+        return output
+
     if key == 'farm_assistant.farm_assistant_rules':
         # Provide a JSON textarea for defining conditional rules
         try:
