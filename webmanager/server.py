@@ -181,6 +181,87 @@ def pre_process_farm_assistant_rule(button, config_section, village_id=None):
     return output
 
 
+def pre_process_farm_assistant_rule_row(rule, index, village_id=None):
+    if not isinstance(rule, dict):
+        rule = {}
+
+    button_value = rule.get('button', 'A')
+    field_value = rule.get('field', 'none')
+    op_value = rule.get('op', 'none')
+    value_value = rule.get('value', '')
+
+    if village_id:
+        data_attrs = ' data-village-id="%s"' % village_id
+        data_type_option = 'farm_assistant_rules'
+    else:
+        data_attrs = ''
+        data_type_option = 'farm_assistant.farm_assistant_rules'
+
+    output = '<div class="form-row align-items-center farm-assistant-rule-row" data-rule-index="%s">' % index
+    output += '<div class="col-sm-2 mb-2">'
+    output += '<select class="form-control farm-assistant-rule-input" data-type="farm-rule" data-type-option="%s" data-rule-index="%s" data-rule-field="button"%s>' % (data_type_option, index, data_attrs)
+    for option in ['A', 'B', 'C']:
+        output += '<option value="%s" %s>%s</option>' % (option, 'selected' if option == button_value else '', option)
+    output += '</select></div>'
+
+    output += '<div class="col-sm-3 mb-2">'
+    output += '<select class="form-control farm-assistant-rule-input" data-type="farm-rule" data-type-option="%s" data-rule-index="%s" data-rule-field="field"%s>' % (data_type_option, index, data_attrs)
+    for option in ['none', 'wall', 'distance', 'last_attack']:
+        output += '<option value="%s" %s>%s</option>' % (option, 'selected' if option == field_value else '', option)
+    output += '</select></div>'
+
+    output += '<div class="col-sm-3 mb-2">'
+    output += '<select class="form-control farm-assistant-rule-input" data-type="farm-rule" data-type-option="%s" data-rule-index="%s" data-rule-field="op"%s>' % (data_type_option, index, data_attrs)
+    op_options = ['none', '<', '>', '<=', '>=', '==']
+    op_labels = {
+        'none': 'none',
+        '<': 'mniejsza (<)',
+        '>': 'większa (>)',
+        '<=': 'mniejsza lub równa (<=)',
+        '>=': 'większa lub równa (>=)',
+        '==': 'równa (==)'
+    }
+    for option in op_options:
+        output += '<option value="%s" %s>%s</option>' % (option, 'selected' if option == op_value else '', op_labels.get(option, option))
+    output += '</select></div>'
+
+    output += '<div class="col-sm-2 mb-2">'
+    output += '<input type="number" class="form-control farm-assistant-rule-input" data-type="farm-rule" data-type-option="%s" data-rule-index="%s" data-rule-field="value"%s value="%s" />' % (
+        data_type_option, index, data_attrs, value_value)
+    output += '</div>'
+
+    output += '<div class="col-sm-2 mb-2">'
+    output += '<button type="button" class="btn btn-danger btn-sm remove-farm-assistant-rule" data-rule-index="%s"%s>Usuń</button>' % (index, data_attrs)
+    output += '</div>'
+    output += '</div>'
+    return output
+
+
+def pre_process_farm_assistant_rules(config_section, village_id=None):
+    rules = config_section.get('farm_assistant_rules', [])
+    if isinstance(rules, str):
+        try:
+            rules = json.loads(rules)
+        except Exception:
+            rules = []
+    if not isinstance(rules, list):
+        rules = []
+
+    if village_id:
+        data_attrs = ' data-village-id="%s"' % village_id
+        data_type_option = 'farm_assistant_rules'
+    else:
+        data_attrs = ''
+        data_type_option = 'farm_assistant.farm_assistant_rules'
+
+    output = '<div class="farm-assistant-rules"%s>' % data_attrs
+    for index, rule in enumerate(rules):
+        output += pre_process_farm_assistant_rule_row(rule, index, village_id)
+    output += '<button type="button" class="btn btn-sm btn-primary add-farm-assistant-rule" data-type="add-farm-assistant-rule" data-type-option="%s"%s>Dodaj regułę</button>' % (data_type_option, data_attrs)
+    output += '</div>'
+    return output
+
+
 def pre_process_number(key, value, village_id=None):
     if village_id:
         return '<input type="number" data-type="number" class="form-control" data-village-id="%s" value="%s" data-type-option="%s" />' % (
@@ -224,6 +305,9 @@ def pre_process_config():
         config_data = ""
         skip_params = set()
         for parameter in config[section]:
+            if section == 'farm_assistant' and parameter == 'farm_assistant_rules':
+                config_data += '%s %s' % (fancy('farm_assistant.farm_assistant_rules'), pre_process_farm_assistant_rules(config[section]))
+                continue
             if section == 'farm_assistant' and parameter in {'farm_assistant_rules', 'farm_assistant_min_wall', 'farm_assistant_max_wall', 'auto_send_assistant_attacks'}:
                 continue
             if parameter in skip_params:
@@ -271,6 +355,9 @@ def pre_process_village_config(village_id):
     skip_params = set()
     for parameter in config:
         if parameter == "additional_farms":
+            continue
+        if parameter == 'farm_assistant_rules':
+            config_data += '%s %s' % (fancy('farm_assistant.farm_assistant_rules'), pre_process_farm_assistant_rules(config, village_id))
             continue
         if parameter in {'farm_assistant_rules', 'farm_assistant_min_wall', 'farm_assistant_max_wall', 'auto_send_assistant_attacks'}:
             continue
