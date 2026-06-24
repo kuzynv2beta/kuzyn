@@ -104,7 +104,8 @@ class TWB:
             "Adres URL powinien wyglądać mniej więcej tak:\n"
             "https://nl01.tribalwars.nl/game.php?village=12345&screen=overview"
         )
-        input_url = input("URL: ")
+        print("URL:")
+        input_url = input()
         if input_url.strip() == "q":
             return False
         server = input_url.split("://")[1].split("/")[0]
@@ -112,12 +113,14 @@ class TWB:
         sub_parts = server.split(".")[0]
         logging.info("Game endpoint: %s", game_endpoint)
         logging.info("World: %s", sub_parts.upper())
-        check = input("Czy to wygląda poprawnie? [nY]")
+        print("Czy to wygląda poprawnie? [nY]")
+        check = input()
         if "y" in check.lower():
-            browser_ua = input(
+            print(
                 "Wprowadź user-agenta swojej przeglądarki "
-                "(obniża wykrywalność). Wyszukaj 'what is my user agent'> "
+                "(obniża wykrywalność). Wyszukaj 'what is my user agent'>"
             )
+            browser_ua = input()
             if browser_ua and len(browser_ua) < 10:
                 logging.error(
                     "Powinien zaczynać się od Chrome, Firefox lub podobnego. Spróbuj ponownie"
@@ -132,9 +135,10 @@ class TWB:
             Używanie pojedynczej sesji przez 24h prawdopodobnie skończy się banem
             """
             logging.info(disclaimer)
-            final_check = input(
-                "Czy to rozumiesz i chcesz kontynuować? wpisz: tak i naciśnij Enter> "
+            print(
+                "Czy to rozumiesz i chcesz kontynuować? wpisz: tak i naciśnij Enter>"
             )
+            final_check = input()
             if "tak" not in final_check.lower():
                 logging.info("Do widzenia :)")
                 sys.exit(0)

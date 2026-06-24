@@ -80,7 +80,8 @@ class WebWrapper:
                 self.reporter.report(
                     0, "TWB_RECAPTCHA", "Zatrzymywanie bota, naciśnij dowolny klawisz po rozwiązaniu captchy")
                 Notification.send("Ochrona przed botami uruchomiona! nie można kontynuować")
-                input("Naciśnij dowolny klawisz...")
+                print("Naciśnij dowolny klawisz...")
+                input()
                 return self.get_url(url, headers)
             return res
         except Exception as e:
