@@ -322,6 +322,34 @@ class Extractor:
                 target = targets.setdefault(str(vid), {'wall': wall, 'links': {}})
                 target['links'][action.upper()] = usable_link
 
+                # try to detect safety/report status within the row
+                # default to safe=True unless we detect hostile markers
+                safe = True
+                # look for common classes or text that indicate danger/unsafe
+                if re.search(r'report[-_ ]?(state|status)[^>]*>([^<]+)', row, re.I):
+                    mtxt = re.search(r'report[-_ ]?(state|status)[^>]*>([^<]+)', row, re.I)
+                    if mtxt and re.search(r'red|danger|enemy|hostile|units|niebezpie', mtxt.group(2), re.I):
+                        safe = False
+                if re.search(r'class="[^"]*(report|report-state|report-icon)[^"]*(red|danger|bad)[^"]*"', row, re.I):
+                    safe = False
+
+                # extract simple resource heuristics: find up to 3 numbers in the row which often correspond to wood/stone/iron
+                resources = {}
+                nums = re.findall(r'>(\d{1,7})<', row)
+                if len(nums) >= 3:
+                    try:
+                        resources = {
+                            'wood': int(nums[0]),
+                            'stone': int(nums[1]),
+                            'iron': int(nums[2])
+                        }
+                    except Exception:
+                        resources = {}
+                # attach detected metadata to target
+                if 'meta' not in target:
+                    target['meta'] = {}
+                target['meta'].update({'safe': safe, 'resources': resources})
+
         return targets
 
     @staticmethod

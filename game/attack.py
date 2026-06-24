@@ -262,6 +262,40 @@ class AttackManager:
         """
         cache_entry = AttackCache.get_cache(vid)
 
+        # If farm assistant mode is enabled, prefer using data from am_farm
+        if self.farm_assistant:
+            try:
+                self.ensure_farm_assistant_targets()
+                ta = self.farm_assistant_targets.get(str(vid))
+                if ta:
+                    # compute min_time similar to normal cache logic
+                    min_time = self.farm_default_wait
+                    if cache_entry:
+                        if cache_entry.get('high_profile'):
+                            min_time = self.farm_high_prio_wait
+                        if cache_entry.get('low_profile'):
+                            min_time = self.farm_low_prio_wait
+                        if cache_entry.get('last_attack') and cache_entry['last_attack'] + min_time > int(time.time()):
+                            self.logger.debug(
+                                "%s will be ignored because of previous attack (%d sec delay between attacks)",
+                                vid, min_time
+                            )
+                            return False
+
+                    safe = True
+                    if 'meta' in ta and 'safe' in ta['meta']:
+                        safe = ta['meta']['safe']
+
+                    if safe:
+                        self.logger.debug("%s considered safe by farm assistant data", vid)
+                        return True
+                    else:
+                        self.logger.info("%s considered unsafe by farm assistant data, skipping", vid)
+                        return False
+            except Exception:
+                # on any parsing error, fall back to existing behaviour
+                pass
+
         if cache_entry and cache_entry["last_attack"]:
             last_attack = datetime.fromtimestamp(cache_entry["last_attack"])
             now = datetime.now()
@@ -275,11 +309,20 @@ class AttackManager:
             if status == 1:
                 return True
 
-            if self.troopmanager.can_scout:
+            # only attempt to scout if we actually have spies available
+            troops = getattr(self.troopmanager, 'troops', {}) or {}
+            try:
+                spy_count = int(troops.get('spy', 0))
+            except Exception:
+                spy_count = 0
+
+            if self.troopmanager.can_scout and spy_count >= self.scout_farm_amount:
                 self.scout(vid)
                 return False
+
+            # no scouts available to perform a safe check; warn and proceed blind
             self.logger.warning(
-                "%s will be attacked but scouting is not possible (yet), going in blind!", vid
+                "%s will be attacked but scouting not possible (insufficient spies), proceeding blind!", vid
             )
             return True
 
