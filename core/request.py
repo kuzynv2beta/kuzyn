@@ -116,11 +116,24 @@ class WebWrapper:
         """
         session_data = FileManager.load_json_file("cache/session.json")
         if session_data:
-            self.web.cookies.update(session_data['cookies'])
-            get_test = self.get_url("game.php?screen=overview")
-            if "game.php" in get_test.url:
-                return True
-            self.logger.warning("Current session cache not valid")
+            if session_data.get('endpoint') and session_data.get('endpoint') != self.endpoint:
+                self.logger.warning(
+                    "Ignoring session cache because stored endpoint %s does not match current endpoint %s",
+                    session_data.get('endpoint'),
+                    self.endpoint,
+                )
+            elif session_data.get('server') and session_data.get('server') != self.server:
+                self.logger.warning(
+                    "Ignoring session cache because stored server %s does not match current server %s",
+                    session_data.get('server'),
+                    self.server,
+                )
+            else:
+                self.web.cookies.update(session_data.get('cookies', {}))
+                get_test = self.get_url("game.php?screen=overview")
+                if get_test is not None and "game.php" in get_test.url:
+                    return True
+                self.logger.warning("Current session cache not valid")
 
         self.web.cookies.clear()
         print("Wprowadź ciąg cookie z przeglądarki>")
