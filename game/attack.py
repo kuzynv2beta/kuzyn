@@ -36,6 +36,8 @@ class AttackManager:
     farm_assistant_targets = {}
     farm_assistant_targets_loaded = False
     farm_assistant_templates = {}
+    farm_assistant_units = {}
+    farm_assistant_loot_limit = {}
     farm_assistant_rules = []
 
     # Konfiguruje liczbę zwiadowców używanych do wykrycia, czy wsie są bezpieczne do farmy
@@ -474,6 +476,10 @@ class AttackManager:
 
         self.farm_assistant_targets.update(Extractor.farm_assistant_targets(page))
         self.farm_assistant_templates.update(Extractor.farm_assistant_templates(page))
+        self.farm_assistant_units.update(Extractor.farm_assistant_units(page))
+        loot_limit = Extractor.farm_assistant_loot_limit(page)
+        if loot_limit:
+            self.farm_assistant_loot_limit = loot_limit
         # if no targets found, dump the page for inspection
         if not self.farm_assistant_targets:
             try:
@@ -485,12 +491,15 @@ class AttackManager:
         try:
             self.logger.debug("Loaded %d farm assistant targets from %s", len(self.farm_assistant_targets), url)
             self.logger.debug("Loaded %d farm assistant templates from %s", len(self.farm_assistant_templates), url)
+            self.logger.debug("Loaded %d farm assistant available units from %s", len(self.farm_assistant_units), url)
+            self.logger.debug("Farm assistant loot limit for %s: %s", self.village_id, self.farm_assistant_loot_limit)
         except Exception:
             pass
         for pagination_url in Extractor.farm_assistant_pagination(page):
             next_page = self.wrapper.get_url(pagination_url)
             if next_page:
                 self.farm_assistant_targets.update(Extractor.farm_assistant_targets(next_page))
+                self.farm_assistant_templates.update(Extractor.farm_assistant_templates(next_page))
                 try:
                     self.logger.debug("Loaded %d farm assistant targets after page %s", len(self.farm_assistant_targets), pagination_url)
                 except Exception:
@@ -516,6 +525,29 @@ class AttackManager:
                 ", ".join(template_keys[:10]),
                 "..." if len(template_keys) > 10 else "",
             )
+        if self.farm_assistant_units:
+            self.logger.debug(
+                "Farm assistant available units for village %s: %s",
+                self.village_id,
+                self.farm_assistant_units,
+            )
+        if self.farm_assistant_loot_limit:
+            self.logger.debug(
+                "Farm assistant loot limit for village %s: %s",
+                self.village_id,
+                self.farm_assistant_loot_limit,
+            )
+
+        # Log per-target metadata counts for farm assistant targets
+        for vid, target in self.farm_assistant_targets.items():
+            if isinstance(target, dict):
+                meta = target.get('meta', {})
+                self.logger.debug(
+                    "Farm assistant target %s meta fields processed: %d %s",
+                    vid,
+                    len(meta),
+                    sorted(meta.keys()) if isinstance(meta, dict) else meta,
+                )
 
     def get_farm_assistant_link(self, vid):
         self.ensure_farm_assistant_targets()
@@ -555,7 +587,13 @@ class AttackManager:
                     match = False
 
                 dist = None
-                if getattr(self, 'map', None) and vid in getattr(self.map, 'map_pos', {}):
+                target_meta = target.get('meta', {}) if isinstance(target, dict) else {}
+                if 'distance' in target_meta and target_meta['distance'] is not None:
+                    try:
+                        dist = float(target_meta['distance'])
+                    except Exception:
+                        dist = None
+                elif getattr(self, 'map', None) and vid in getattr(self.map, 'map_pos', {}):
                     try:
                         coords = self.map.map_pos[vid]
                         dist = self.map.get_dist(coords)
@@ -624,7 +662,7 @@ class AttackManager:
                 self.logger.debug("Using farm assistant link for %s button %s -> %s", vid, option, link)
                 return option, link
 
-        self.logger.debug("No enabled farm assistant button available for %s, chosen %s", vid, button)
+        self.logger.debug("No enabled farm assistant button available for %s", vid)
         return None
 
     def attack_with_assistant(self, vid, troops=None):
@@ -777,7 +815,14 @@ class AttackManager:
 
         for btn in buttons:
             link = target['links'][btn] if isinstance(target, dict) and target.get('links') else link
-            self.logger.debug("Trying farm assistant button %s for %s", btn, vid)
+            meta = target.get('meta', {}) if isinstance(target, dict) else {}
+            self.logger.debug(
+                "Trying farm assistant button %s for %s, target meta fields: %d %s",
+                btn,
+                vid,
+                len(meta),
+                sorted(meta.keys()) if isinstance(meta, dict) else meta,
+            )
             if _attempt_link(btn, link):
                 tpl = link.get('template') if isinstance(link, dict) else None
                 if tpl and tpl in self.farm_assistant_templates and self.troopmanager:

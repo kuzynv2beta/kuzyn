@@ -337,7 +337,6 @@ class Extractor:
                 # try to detect safety/report status within the row
                 # default to safe=True unless we detect hostile markers
                 safe = True
-                # look for common classes or text that indicate danger/unsafe
                 if re.search(r'report[-_ ]?(state|status)[^>]*>([^<]+)', row, re.I):
                     mtxt = re.search(r'report[-_ ]?(state|status)[^>]*>([^<]+)', row, re.I)
                     if mtxt and re.search(r'red|danger|enemy|hostile|units|niebezpie', mtxt.group(2), re.I):
@@ -345,25 +344,75 @@ class Extractor:
                 if re.search(r'class="[^"]*(report|report-state|report-icon)[^"]*(red|danger|bad)[^"]*"', row, re.I):
                     safe = False
 
-                # extract simple resource heuristics: find up to 3 numbers in the row which often correspond to wood/stone/iron
+                # detect loot result type from row icons or titles
+                loot_type = 'unknown'
+                if re.search(r'max_loot/(?:1|full)\.(?:webp|png|jpg)', row, re.I) or re.search(r'full[_-]?loot', row, re.I):
+                    loot_type = 'full'
+                elif re.search(r'max_loot/(?:0|partial)\.(?:webp|png|jpg)', row, re.I) or re.search(r'partial[_-]?loot', row, re.I):
+                    loot_type = 'partial'
+
+                # extract coordinate data from row text
+                coords = None
+                coords_match = re.search(r'\((\d+)\|(\d+)\)', row)
+                if coords_match:
+                    coords = {'x': int(coords_match.group(1)), 'y': int(coords_match.group(2))}
+
+                # extract target time / last attack info
+                last_attack = None
+                time_match = re.search(r'(\d{2}:\d{2}:\d{2})', row)
+                if time_match:
+                    last_attack = time_match.group(1)
+
+                # extract basic resources from row; prefer the resources cell if present
                 resources = {}
-                nums = re.findall(r'>(\d{1,7})<', row)
-                if len(nums) >= 3:
+                try:
+                    tds = re.findall(r'(?s)<td[^>]*>(.*?)</td>', row)
+                    if len(tds) > 5:
+                        resource_text = tds[5]
+                        nums = re.findall(r'(\d{1,7})', resource_text)
+                        if len(nums) >= 3:
+                            resources = {
+                                'wood': int(nums[0]),
+                                'stone': int(nums[1]),
+                                'iron': int(nums[2]),
+                            }
+                except Exception:
+                    resources = {}
+
+                # detect wall and distance from farm assistant row
+                wall_value = wall
+                distance_value = None
+                if len(tds) > 6:
                     try:
-                        resources = {
-                            'wood': int(nums[0]),
-                            'stone': int(nums[1]),
-                            'iron': int(nums[2])
-                        }
+                        wall_text = re.sub(r'<.*?>', '', tds[6]).strip()
+                        wall_digits = re.findall(r'-?\d+', wall_text)
+                        if wall_digits:
+                            wall_value = int(wall_digits[0])
                     except Exception:
-                        resources = {}
+                        pass
+                if len(tds) > 7:
+                    try:
+                        dist_text = re.sub(r'<.*?>', '', tds[7]).strip()
+                        if dist_text and dist_text != '?':
+                            distance_value = float(dist_text.replace(',', '.'))
+                    except Exception:
+                        pass
+
                 # attach detected metadata to target
                 if 'meta' not in target:
                     target['meta'] = {}
-                target['meta'].update({'safe': safe, 'resources': resources})
+                target['meta'].update({
+                    'safe': safe,
+                    'loot_type': loot_type,
+                    'coords': coords,
+                    'last_attack': last_attack,
+                    'resources': resources,
+                    'wall': wall_value,
+                    'distance': distance_value,
+                })
+
                 # attach template id if we parsed one
                 if 'links' in target and action.upper() in target['links']:
-                    # update the dict we stored earlier
                     try:
                         if template_id:
                             target['links'][action.upper()].update({'template': template_id})
@@ -385,6 +434,55 @@ class Extractor:
         for tmpl_id, unit, value in re.findall(r"Accountmanager\.farm\.templates\['t_(\d+)'\]\['([^']+)'\]\s*=\s*(\d+);", res):
             templates.setdefault(tmpl_id, {})[unit] = int(value)
         return templates
+
+    @staticmethod
+    def farm_assistant_units(res):
+        """
+        Extract available units from the farm assistant page.
+        """
+        if type(res) != str:
+            res = res.text
+        units = {}
+        for unit in [
+                'spear', 'sword', 'axe', 'archer', 'spy',
+                'light', 'marcher', 'heavy', 'ram', 'catapult',
+                'knight', 'snob', 'militia']:
+            m = re.search(rf'<td[^>]*id="{unit}"[^>]*data-unit-count="(\d+)"', res)
+            if m:
+                try:
+                    units[unit] = int(m.group(1))
+                except Exception:
+                    units[unit] = 0
+        if not units:
+            for unit in [
+                    'spear', 'sword', 'axe', 'archer', 'spy',
+                    'light', 'marcher', 'heavy', 'ram', 'catapult',
+                    'knight', 'snob', 'militia']:
+                m = re.search(rf'<td[^>]*id="{unit}"[^>]*>(\d+)</td>', res)
+                if m:
+                    try:
+                        units[unit] = int(m.group(1))
+                    except Exception:
+                        units[unit] = 0
+        return units
+
+    @staticmethod
+    def farm_assistant_loot_limit(res):
+        """
+        Extract farm loot limit information from the farm assistant page.
+        """
+        if type(res) != str:
+            res = res.text
+        match = re.search(r'Zrabowane surowce:\s*</strong>\s*<span>(\d+)</span>/(\d+)\.', res)
+        if match:
+            try:
+                return {
+                    'current': int(match.group(1)),
+                    'limit': int(match.group(2)),
+                }
+            except Exception:
+                return {}
+        return {}
 
     @staticmethod
     def attack_duration(res):
