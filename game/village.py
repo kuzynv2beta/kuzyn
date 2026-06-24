@@ -497,13 +497,23 @@ class Village:
             if sent >= self.attack.max_farms:
                 break
 
-            # check troops availability
-            if type(self.attack.template) != dict:
+            # determine which template to use (template can be dict or list of dicts)
+            chosen_template = None
+            if isinstance(self.attack.template, dict):
+                chosen_template = self.attack.template
+            elif isinstance(self.attack.template, list):
+                # pick first template that has enough troops
+                for tmpl in self.attack.template:
+                    missing = self.attack.enough_in_village(tmpl)
+                    if not missing:
+                        chosen_template = tmpl
+                        break
+                if not chosen_template:
+                    self.logger.debug("Not enough troops for any assistant template")
+                    break
+            else:
+                self.logger.debug("Unknown farm template type: %s", type(self.attack.template))
                 continue
-            missing = self.attack.enough_in_village(self.attack.template)
-            if missing:
-                self.logger.debug("Not enough troops for assistant attack: %s", missing)
-                break
 
             # show candidate link before safety check
             try:
@@ -514,13 +524,13 @@ class Village:
 
             cached = self.attack.can_attack(vid=vid, clear=False)
             if cached:
-                res = self.attack.attack_with_assistant(vid, troops=self.attack.template)
+                res = self.attack.attack_with_assistant(vid, troops=chosen_template)
                 if res:
                     # decrement local troop counts
-                    for u in self.attack.template:
+                    for u in chosen_template:
                         if u in self.units.troops:
                             try:
-                                self.units.troops[u] = str(int(self.units.troops[u]) - self.attack.template[u])
+                                self.units.troops[u] = str(int(self.units.troops[u]) - chosen_template[u])
                             except Exception:
                                 pass
                     # record attack
