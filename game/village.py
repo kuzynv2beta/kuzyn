@@ -458,6 +458,7 @@ class Village:
         self.attack.max_farms = _get_assistant("max_farms", 25)
         if self.current_unit_entry:
             self.attack.template = self.current_unit_entry["farm"]
+        self.logger.debug("Farm template for village %s: %s", self.village_id, getattr(self.attack, 'template', None))
 
     def run_farming(self):
         """
@@ -490,6 +491,8 @@ class Village:
         # iterate over assistant targets and send attacks up to max_farms
         sent = 0
         targets = list(self.attack.farm_assistant_targets.keys()) if self.attack.farm_assistant_targets else []
+        self.logger.debug("Assistant targets for village %s: %s", self.village_id, targets)
+        self.logger.debug("Available troops for village %s: %s", self.village_id, getattr(self.units, 'troops', None))
         for vid in targets:
             if sent >= self.attack.max_farms:
                 break
@@ -501,6 +504,13 @@ class Village:
             if missing:
                 self.logger.debug("Not enough troops for assistant attack: %s", missing)
                 break
+
+            # show candidate link before safety check
+            try:
+                link = self.attack.get_farm_assistant_link(vid)
+                self.logger.debug("Resolved farm assistant link for %s -> %s", vid, link)
+            except Exception:
+                link = None
 
             cached = self.attack.can_attack(vid=vid, clear=False)
             if cached:
