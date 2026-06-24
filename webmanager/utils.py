@@ -267,16 +267,18 @@ class BotManager:
                 logger = logging.getLogger("BotSubprocess")
                 try:
                     cur = ''
+                    partial_in_buffer = False
                     # read one char at a time so we capture prompts without newline
                     while True:
                         ch = self.proc.stdout.read(1)
                         if ch == '':
                             # stream closed
                             if cur:
-                                # flush remaining
                                 try:
                                     if bot_log_handler is not None:
-                                        # push remaining as final line
+                                        # if a partial was already in buffer, replace it with final
+                                        if partial_in_buffer and len(bot_log_handler.buffer) > 0:
+                                            bot_log_handler.buffer.pop()
                                         bot_log_handler.buffer.append(cur)
                                     else:
                                         logger.info(cur)
@@ -288,25 +290,32 @@ class BotManager:
                             line = cur.rstrip('\n')
                             try:
                                 if bot_log_handler is not None:
+                                    # if we had previously appended a partial, remove it
+                                    if partial_in_buffer and len(bot_log_handler.buffer) > 0:
+                                        bot_log_handler.buffer.pop()
                                     bot_log_handler.buffer.append(line)
                                 else:
                                     logger.info(line)
                             except Exception:
                                 logger.info(line)
                             cur = ''
+                            partial_in_buffer = False
                         else:
                             # update last partial entry so UI can show prompts immediately
                             try:
                                 if bot_log_handler is not None:
-                                    if len(bot_log_handler.buffer) == 0:
+                                    if not partial_in_buffer:
+                                        # append new partial entry
                                         bot_log_handler.buffer.append(cur)
+                                        partial_in_buffer = True
                                     else:
-                                        # replace last element with current partial
-                                        last = bot_log_handler.buffer.pop()
+                                        # replace last partial with updated text
+                                        if len(bot_log_handler.buffer) > 0:
+                                            bot_log_handler.buffer.pop()
                                         bot_log_handler.buffer.append(cur)
                                 else:
-                                    # fallback: log partials to logger at INFO level (no newline)
-                                    logger.info(cur)
+                                    # fallback: log partials to logger at DEBUG level to avoid clutter
+                                    logger.debug(cur)
                             except Exception:
                                 logger.debug('Failed to write partial bot output')
                 except Exception:

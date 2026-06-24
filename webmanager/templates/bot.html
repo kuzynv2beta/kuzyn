@@ -91,6 +91,24 @@
 </div>
 
 {% endblock %}
+{% block styles %}
+<style>
+.log-line{padding:4px 6px; border-bottom:1px solid rgba(255,255,255,0.03); font-family:monospace; font-size:13px}
+.log-ts{color:#9aa4ad; margin-right:6px}
+.log-logger{color:#7fb0ff; margin-right:6px}
+.log-level{font-weight:700; padding:2px 6px; border-radius:4px; margin-right:6px; font-size:11px}
+.level-info .log-level{background:#e6f4ea; color:#0b6b24}
+.level-warn .log-level{background:#fff4e5; color:#7a4f00}
+.level-error .log-level{background:#fdecea; color:#8a1f1f}
+.level-debug .log-level{background:#eef3ff; color:#1f4fa8}
+.log-msg{color:#e6eef6}
+#bot-console{background:#081018}
+#http-console{background:#061014}
+#bot-console .log-line{color:#c8f7c8}
+#http-console .log-line{color:#f7f1c8}
+.card .card-body h5{margin-top:0;margin-bottom:8px}
+</style>
+{% endblock %}
 {% block scripts %}
 <script>
 function escapeHtml(text) {
@@ -102,11 +120,47 @@ function escapeHtml(text) {
         .replace(/'/g, '&#039;');
 }
 
+// Strip ANSI color codes
+function stripAnsi(s){
+    return s.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function formatLogLine(line, kind){
+    if(!line) return '';
+    line = stripAnsi(line);
+    // Try to parse: timestamp - logger - LEVEL - message
+    var m = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d{3})?) - ([^ ]+) - ([A-Z]+) - (.*)$/);
+    var ts = '', logger = '', level = '', msg = line;
+    if(m){ ts = m[1]; logger = m[2]; level = m[3]; msg = m[4]; }
+    // Fallback: try other separator ' - '
+    else{
+        var parts = line.split(' - ');
+        if(parts.length >= 4){ ts = parts[0]; logger = parts[1]; level = parts[2]; msg = parts.slice(3).join(' - '); }
+    }
+
+    var levelClass = 'level-info';
+    if(level){
+        var l = level.toUpperCase();
+        if(l.indexOf('ERROR')>=0 || l.indexOf('CRITICAL')>=0) levelClass = 'level-error';
+        else if(l.indexOf('WARN')>=0) levelClass = 'level-warn';
+        else if(l.indexOf('DEBUG')>=0) levelClass = 'level-debug';
+        else levelClass = 'level-info';
+    }
+
+    var html = '<div class="log-line '+levelClass+'">';
+    if(ts) html += '<span class="log-ts">'+escapeHtml(ts)+'</span> ';
+    if(logger) html += '<span class="log-logger">'+escapeHtml(logger)+'</span> ';
+    if(level) html += '<span class="log-level '+levelClass+'">'+escapeHtml(level)+'</span> ';
+    html += '<span class="log-msg">'+escapeHtml(msg)+'</span>';
+    html += '</div>';
+    return html;
+}
+
 function refreshBotLogs(){
     $.getJSON('/logs?kind=bot&n=200', function(data){
         if(!data || !data.logs) return;
         var html = '';
-        data.logs.forEach(function(l){ html += '<div>' + escapeHtml(l) + '</div>'; });
+        data.logs.forEach(function(l){ html += formatLogLine(l,'bot'); });
         $('#bot-console').html(html);
         var el = $('#bot-console')[0]; if(el) el.scrollTop = el.scrollHeight;
     });
@@ -116,7 +170,7 @@ function refreshHttpLogs(){
     $.getJSON('/logs?kind=http&n=200', function(data){
         if(!data || !data.logs) return;
         var html = '';
-        data.logs.forEach(function(l){ html += '<div>' + escapeHtml(l) + '</div>'; });
+        data.logs.forEach(function(l){ html += formatLogLine(l,'http'); });
         $('#http-console').html(html);
         var el = $('#http-console')[0]; if(el) el.scrollTop = el.scrollHeight;
     });
