@@ -558,16 +558,24 @@ class Village:
         """
         Runs gathering if unlocked and active
         """
-        self.units.can_gather = self.get_village_config(
-            self.village_id, parameter="gather_enabled", default=False
+        self.units.can_gather = self.get_config(
+            section="gather",
+            parameter="enabled",
+            default=False
         )
         if not self.def_man or not self.def_man.under_attack:
             self.units.gather(
-                selection=self.get_village_config(
-                    self.village_id, parameter="gather_selection", default=1
+                selection=self.get_config(
+                    section="gather",
+                    parameter="selection",
+                    default=1
                 ),
                 disabled_units=self.disabled_units,
-                advanced_gather=self.get_village_config(self.village_id, parameter="advanced_gather", default=1)
+                advanced_gather=self.get_config(
+                    section="gather",
+                    parameter="advanced",
+                    default=True
+                )
             )
 
     def go_manage_market(self):

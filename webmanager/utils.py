@@ -63,18 +63,41 @@ class DataReader:
     def config_grab():
         config_path = os.path.join(os.path.dirname(__file__), "..", "config.json")
         example_path = os.path.join(os.path.dirname(__file__), "..", "config.example.json")
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, 'r') as f:
-                    return json.load(f)
-            except json.JSONDecodeError:
-                pass
+        example = {}
         if os.path.exists(example_path):
             try:
                 with open(example_path, 'r') as f:
-                    return json.load(f)
+                    example = json.load(f)
             except json.JSONDecodeError:
-                pass
+                example = {}
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+            except json.JSONDecodeError:
+                config = {}
+
+            if isinstance(config, dict) and isinstance(example, dict):
+                merged = False
+                for section, section_data in example.items():
+                    if section not in config or not isinstance(config.get(section), dict):
+                        config[section] = section_data
+                        merged = True
+                    else:
+                        if isinstance(section_data, dict):
+                            for param, param_value in section_data.items():
+                                if param not in config[section]:
+                                    config[section][param] = param_value
+                                    merged = True
+                if merged:
+                    try:
+                        with open(config_path, 'w') as f:
+                            json.dump(config, f, indent=2, sort_keys=False)
+                    except Exception:
+                        pass
+            return config
+        if example:
+            return example
         return {}
 
     @staticmethod

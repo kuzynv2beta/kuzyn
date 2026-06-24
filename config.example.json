@@ -31,6 +31,11 @@
     "user_agent": null,
     "check_update": true
   },
+  "gather": {
+    "enabled": false,
+    "selection": 1,
+    "advanced": true
+  },
   "building": {
     "manage_buildings": false,
     "default": "purple_predator",
@@ -55,9 +60,6 @@
     "prioritize_building": false,
     "prioritize_snob": false,
     "trade_for_premium": false,
-    "gather_enabled": false,
-    "gather_selection": 1,
-    "advanced_gather": true,
     "snobs": 0,
     "evacuate_fragile_units_on_attack": false,
     "support_others": false,

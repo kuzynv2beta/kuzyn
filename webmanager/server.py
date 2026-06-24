@@ -361,6 +361,8 @@ def pre_process_village_config(village_id):
             continue
         if parameter in {'farm_assistant_rules', 'farm_assistant_min_wall', 'farm_assistant_max_wall', 'auto_send_assistant_attacks'}:
             continue
+        if parameter in {'gather_enabled', 'gather_selection', 'advanced_gather'}:
+            continue
         if parameter in skip_params:
             continue
         value = config[parameter]

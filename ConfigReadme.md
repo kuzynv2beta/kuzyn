@@ -101,4 +101,5 @@ Ta sekcja zawiera ustawienia nowego `farm_assistant`, które zastępuje starą s
 
 **Zbieranie**
 Jeśli wojska nie są używane do farmy i nie ma ataku przychodzącego, wieś będzie automatycznie próbować rozpocząć operację zbierania.
-Możesz włączyć/wyłączyć to za pomocą parametru gather i ustawić domyślną operację zbierania za pomocą opcji "gather_selection".
+Możesz włączyć/wyłączyć to za pomocą sekcji `gather` w pliku konfiguracyjnym oraz ustawić domyślną operację zbierania za pomocą opcji `gather.selection`.
+Użycie opcji `gather.advanced` włączy zaawansowane dzielenie jednostek na wiele operacji zbierania.
