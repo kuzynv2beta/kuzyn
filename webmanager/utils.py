@@ -266,22 +266,49 @@ class BotManager:
             def _reader():
                 logger = logging.getLogger("BotSubprocess")
                 try:
-                    for line in iter(self.proc.stdout.readline, ''):
-                        if not line:
-                            break
-                        text = line.rstrip('\n')
-                        # Prefer direct append to in-memory bot log buffer to avoid missing lines
-                        try:
-                            if bot_log_handler is not None:
+                    cur = ''
+                    # read one char at a time so we capture prompts without newline
+                    while True:
+                        ch = self.proc.stdout.read(1)
+                        if ch == '':
+                            # stream closed
+                            if cur:
+                                # flush remaining
                                 try:
-                                    bot_log_handler.buffer.append(text)
+                                    if bot_log_handler is not None:
+                                        # push remaining as final line
+                                        bot_log_handler.buffer.append(cur)
+                                    else:
+                                        logger.info(cur)
                                 except Exception:
-                                    # fallback to emit for compatibility
-                                    bot_log_handler.emit(logging.LogRecord('BotSubprocess', logging.INFO, '', 0, text, None, None))
-                            else:
-                                logger.info(text)
-                        except Exception:
-                            logger.info(text)
+                                    logger.info(cur)
+                            break
+                        cur += ch
+                        if ch == '\n':
+                            line = cur.rstrip('\n')
+                            try:
+                                if bot_log_handler is not None:
+                                    bot_log_handler.buffer.append(line)
+                                else:
+                                    logger.info(line)
+                            except Exception:
+                                logger.info(line)
+                            cur = ''
+                        else:
+                            # update last partial entry so UI can show prompts immediately
+                            try:
+                                if bot_log_handler is not None:
+                                    if len(bot_log_handler.buffer) == 0:
+                                        bot_log_handler.buffer.append(cur)
+                                    else:
+                                        # replace last element with current partial
+                                        last = bot_log_handler.buffer.pop()
+                                        bot_log_handler.buffer.append(cur)
+                                else:
+                                    # fallback: log partials to logger at INFO level (no newline)
+                                    logger.info(cur)
+                            except Exception:
+                                logger.debug('Failed to write partial bot output')
                 except Exception:
                     logger.exception('Error reading bot subprocess output')
 
