@@ -189,7 +189,7 @@ class BuildingTemplateManager:
 class MapBuilder:
 
     @staticmethod
-    def build(villages, current_village=None, size=None):
+    def build(villages, current_village=None, size=None, center_coords=None):
         out_map = {}
         min_x = 999
         max_x = 0
@@ -221,7 +221,12 @@ class MapBuilder:
         if not villages:
             return {"grid": {}, "extra": extra_data}
 
-        if current_location and size:
+        if center_coords and size:
+            min_x = center_coords[0] - size
+            min_y = center_coords[1] - size
+            max_x = center_coords[0] + size
+            max_y = center_coords[1] + size
+        elif current_location and size:
             min_x = current_location[0] - size
             min_y = current_location[1] - size
             max_x = current_location[0] + size
@@ -239,7 +244,33 @@ class MapBuilder:
                     ylocs[location_y - min_y] = None
             out_map[location_x - min_x] = ylocs
 
-        return {"grid": out_map, "extra": extra_data}
+        result = {
+            "grid": out_map,
+            "extra": extra_data,
+            "min_x": min_x,
+            "min_y": min_y,
+            "max_x": max_x,
+            "max_y": max_y,
+        }
+
+        if center_coords:
+            result["center_x"] = center_coords[0]
+            result["center_y"] = center_coords[1]
+        elif current_location:
+            result["center_x"] = current_location[0]
+            result["center_y"] = current_location[1]
+        else:
+            result["center_x"] = None
+            result["center_y"] = None
+
+        if current_location:
+            result["current_x"] = current_location[0]
+            result["current_y"] = current_location[1]
+        else:
+            result["current_x"] = None
+            result["current_y"] = None
+
+        return result
 
 
 class BotManager:

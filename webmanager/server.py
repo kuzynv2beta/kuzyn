@@ -277,14 +277,27 @@ def get_village_config():
 def get_map():
     sync_data = sync()
     center_id = request.args.get("center", None)
+    center_x = request.args.get("x", None)
+    center_y = request.args.get("y", None)
+    center_coords = None
+    if center_x is not None and center_y is not None:
+        try:
+            center_coords = (int(center_x), int(center_y))
+        except ValueError:
+            center_coords = None
     if center_id:
         center = center_id
     else:
         center = None
         if sync_data['villages']:
             center = next(iter(sync_data['villages']))
-    map_data = json.dumps(MapBuilder.build(sync_data['villages'], current_village=center, size=15))
-    return render_template('map.html', data=sync_data, map=map_data)
+    map_payload = MapBuilder.build(sync_data['villages'], current_village=center, size=15, center_coords=center_coords)
+    map_data = json.dumps(map_payload)
+    return render_template('map.html', data=sync_data, map=map_data,
+                           map_center_x=map_payload.get('center_x'),
+                           map_center_y=map_payload.get('center_y'),
+                           map_min_x=map_payload.get('min_x'),
+                           map_min_y=map_payload.get('min_y'))
 
 
 @app.route('/map/refresh', methods=['POST', 'GET'])
