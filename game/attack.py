@@ -673,9 +673,17 @@ class AttackManager:
                 # generic fallback param
                 attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_village={vid}")
 
+        ajax_headers = dict(self.wrapper.headers)
+        ajax_headers.update({
+            'Accept': "application/json, text/javascript, */*; q=0.01",
+            'X-Requested-With': "XMLHttpRequest",
+            'TribalWars-Ajax': "1",
+            'tribalwars-ajax': "1",
+        })
+
         for url in attempts:
             try:
-                resp = self.wrapper.get_url(url)
+                resp = self.wrapper.get_url(url, headers=ajax_headers)
                 if not resp:
                     continue
                 text = resp.text if hasattr(resp, 'text') else ''
