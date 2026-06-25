@@ -514,13 +514,22 @@ class TroopManager:
         self.logger.info("Wszystkie dostępne poziomy zbieractwa są w użyciu.")
         return True
 
+    def _recruit_screen(self, building):
+        """
+        Return the actual screen used for recruiting from a building.
+        """
+        if building in ["barracks", "stable", "garage"]:
+            return "train"
+        return building
+
     def cancel(self, building, id):
         """
         Cancel a troop recruiting action
         """
+        screen = self._recruit_screen(building)
         self.wrapper.get_api_action(
             action="cancel",
-            params={"screen": building},
+            params={"screen": screen},
             data={"id": id},
             village_id=self.village_id,
         )
@@ -529,7 +538,8 @@ class TroopManager:
         """
         Recruit x amount of x from a certain building
         """
-        data = self.wrapper.get_action(action=building, village_id=self.village_id)
+        screen = self._recruit_screen(building)
+        data = self.wrapper.get_action(action=screen, village_id=self.village_id)
 
         existing = Extractor.active_recruit_queue(data)
         if existing:
@@ -619,7 +629,7 @@ class TroopManager:
         result = self.wrapper.get_api_action(
             village_id=self.village_id,
             action="train",
-            params={"screen": building, "mode": "train"},
+            params={"screen": screen, "mode": "train"},
             data={"units[%s]" % unit_type: str(amount)},
         )
         if "game_data" in result:
