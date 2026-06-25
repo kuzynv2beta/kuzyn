@@ -548,8 +548,11 @@ class TroopManager:
         self.game_data = Extractor.game_state(data)
         self.logger.info("Attempting recruitment of %d %s" % (amount, unit_type))
 
-        if amount > self.max_batch_size:
-            amount = self.max_batch_size
+        max_batch_size = self.max_batch_size
+        if isinstance(max_batch_size, dict):
+            max_batch_size = max_batch_size.get(building, max_batch_size.get("default", 50))
+        if amount > max_batch_size:
+            amount = max_batch_size
 
         if unit_type not in self.recruit_data:
             self.logger.warning(

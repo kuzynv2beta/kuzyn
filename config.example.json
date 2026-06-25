@@ -47,6 +47,9 @@
     "upgrade": true,
     "default": "basic",
     "batch_size": 25,
+    "batch_size_barracks": 25,
+    "batch_size_stable": 25,
+    "batch_size_workshop": 25,
     "manage_defence": false,
     "remove_manual_queued": false,
     "randomize_unit_queue": true

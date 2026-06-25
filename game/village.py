@@ -209,9 +209,21 @@ class Village:
         if not self.units:
             self.units = TroopManager(wrapper=self.wrapper, village_id=self.village_id)
             self.units.resman = self.resman
-        self.units.max_batch_size = self.get_config(
+        batch_size_default = self.get_config(
             section="units", parameter="batch_size", default=25
         )
+        self.units.max_batch_size = {
+            "barracks": self.get_config(
+                section="units", parameter="batch_size_barracks", default=batch_size_default
+            ),
+            "stable": self.get_config(
+                section="units", parameter="batch_size_stable", default=batch_size_default
+            ),
+            "garage": self.get_config(
+                section="units", parameter="batch_size_workshop", default=batch_size_default
+            ),
+            "default": batch_size_default,
+        }
 
         # set village templates
         unit_config = self.get_village_config(

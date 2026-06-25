@@ -61,7 +61,6 @@ button[data-type=toggle],
         <div class="card mb-4">
             <div class="card-header panel-decor">
                 <span class="gold-underline">Ustawienia</span>
-                <a id="save_config" class="btn btn-gold disabled">Zapisz</a>
             </div>
             <div class="card-body">
                 <div class="config-grid">
@@ -88,7 +87,6 @@ button[data-type=toggle],
 
 {% block scripts %}
 <script>
-    var set_values = {};
 	function set_config(parameter, value) {
 		$.getJSON("/app/config/set?parameter="+encodeURIComponent(parameter)+"&value="+encodeURIComponent(value), function(data){
 			console.log("Set values", parameter, value);
@@ -128,16 +126,14 @@ button[data-type=toggle],
       var target = $(event.target);
       var name = target.attr("data-type-option");
       if(name == undefined) alert("Error setting target");
-      set_values[name] = parseInt(target.val());
-      $('#save_config').removeClass('disabled').prop('disabled', false);
+      set_config(name, parseInt(target.val()));
 	}
 
 	function text_event(event) {
       var target = $(event.target);
       var name = target.attr("data-type-option");
       if(name == undefined) alert("Error setting target");
-      set_values[name] = target.val();
-      $('#save_config').removeClass('disabled').prop('disabled', false);
+      set_config(name, target.val());
 	}
 
 	function list_event(event) {
@@ -146,8 +142,7 @@ button[data-type=toggle],
       if(name == undefined) alert("Error setting target");
       var value = target.val() || "";
       var items = value.split(',').map(function(item) { return item.trim(); }).filter(function(item) { return item !== ""; });
-      set_values[name] = JSON.stringify(items);
-      $('#save_config').removeClass('disabled').prop('disabled', false);
+      set_config(name, JSON.stringify(items));
 	}
 
 	function collectFarmAssistantRules() {
@@ -166,11 +161,11 @@ button[data-type=toggle],
 				value: value === '' ? '' : Number(value)
 			});
 		});
-		set_values[name] = JSON.stringify(rules);
+		return { name: name, value: JSON.stringify(rules) };
 	}
 
 	function markConfigDirty() {
-		$('#save_config').removeClass('disabled');
+		// No button to enable when auto-saving.
 	}
 
 	function addFarmAssistantRuleRow() {
@@ -233,23 +228,20 @@ button[data-type=toggle],
 		});
 
 		$(document).on('change', '.farm-assistant-rule-input', function() {
-			collectFarmAssistantRules();
-			markConfigDirty();
+			var collected = collectFarmAssistantRules();
+			set_config(collected.name, collected.value);
 		});
 
 		$(document).on('click', '.add-farm-assistant-rule', function() {
 			addFarmAssistantRuleRow();
+			var collected = collectFarmAssistantRules();
+			set_config(collected.name, collected.value);
 		});
 
 		$(document).on('click', '.remove-farm-assistant-rule', function() {
 			removeFarmAssistantRuleRow($(this));
-		});
-
-		$('#save_config').click(function(){
-		  $.each(set_values, function(set_key, set_value){
-		    set_config(set_key, set_value);
-		  });
-		  setTimeout(function(){location.reload()}, 500);
+			var collected = collectFarmAssistantRules();
+			set_config(collected.name, collected.value);
 		});
 	});
 </script>
