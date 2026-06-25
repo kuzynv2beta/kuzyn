@@ -96,14 +96,14 @@
 .log-line{padding:4px 6px; border-bottom:1px solid rgba(255,255,255,0.03); font-family:monospace; font-size:13px}
 .log-ts{color:#9aa4ad; margin-right:6px; opacity:0.9}
 .log-logger{color:inherit; margin-right:6px}
-.log-level{font-weight:700; padding:2px 6px; border-radius:4px; margin-right:6px; font-size:11px}
-.level-info .log-level{background:#2d6a2d; color:#ffffff}
-.level-get .log-level{background:#1c4ea1; color:#ffffff}
-.level-read .log-level{background:#c47b0c; color:#ffffff}
-.level-work .log-level{background:#8b3299; color:#ffffff}
-.level-warn .log-level{background:#b02b2b; color:#ffffff}
-.level-error .log-level{background:#b02b2b; color:#ffffff}
-.level-debug .log-level{background:#1f4fa8; color:#ffffff}
+.log-level{display:inline-block; font-weight:700; padding:2px 6px; border-radius:4px; margin-right:6px; font-size:11px; vertical-align:middle;}
+.level-info .log-level, .log-level.level-info{background:#2d6a2d !important; color:#ffffff !important}
+.level-get .log-level, .log-level.level-get{background:#1c4ea1 !important; color:#ffffff !important}
+.level-read .log-level, .log-level.level-read{background:#c47b0c !important; color:#000000 !important}
+.level-work .log-level, .log-level.level-work{background:#8b3299 !important; color:#ffffff !important}
+.level-warn .log-level, .log-level.level-warn{background:#b02b2b !important; color:#ffffff !important}
+.level-error .log-level, .log-level.level-error{background:#b02b2b !important; color:#ffffff !important}
+.level-debug .log-level, .log-level.level-debug{background:#1f4fa8 !important; color:#ffffff !important}
 .log-msg{color:inherit}
 .line-default{color:#d4af37}
 .line-info{color:#73b22f}
