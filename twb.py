@@ -76,6 +76,9 @@ class TWB:
     runs = 0
     found_villages = []
 
+    def __init__(self):
+        self.logger = logging.getLogger("Bot")
+
     @staticmethod
     def internet_online():
         """
@@ -215,17 +218,14 @@ class TWB:
         """
         Gets the overview page to automatically detect world options and owned villages
         """
-        print("Pobieram informacje o wioskach z przeglądu świata")
-        logging.info("Pobieram informacje o wioskach z przeglądu świata")
+        self.logger.info("[READ] Pobieram informacje o wioskach z przeglądu świata")
         overview_page = OverviewPage(self.wrapper)
         self.found_villages = Extractor.village_ids_from_overview(overview_page.result_get.text)
         if config["bot"].get("add_new_villages", False):
             current_config = self.config()
             for found_vid in self.found_villages:
                 if found_vid not in current_config.get("villages", {}):
-                    msg = f"Znaleziono wieś {found_vid}, brak wpisu w konfiguracji. Dodaję automatycznie"
-                    print(msg)
-                    logging.info(msg)
+                    self.logger.info("[WORK] Znaleziono wieś %s, brak wpisu w konfiguracji. Dodaję automatycznie", found_vid)
                     current_config = self.add_village(village_id=found_vid)
                     if current_config and found_vid not in [v.village_id for v in self.villages]:
                         new_village = Village(wrapper=self.wrapper, village_id=found_vid)
@@ -243,10 +243,10 @@ class TWB:
         overview_page, config = self.get_overview(config)
         has_changed, new_cf = self.get_world_options(overview_page, config)
         if has_changed:
-            print("Zaktualizowano ustawienia świata")
+            self.logger.info("[INFO] Zaktualizowano ustawienia świata")
             config = self.merge_configs(config, new_cf)
             FileManager.save_json_file(config, "config.json")
-            print("Zapisano nowy plik konfiguracyjny")
+            self.logger.info("[INFO] Zapisano nowy plik konfiguracyjny")
 
         existing_villages = [v.village_id for v in self.villages]
         for vid in config["villages"]:
@@ -272,11 +272,9 @@ class TWB:
             return original
 
         original["villages"][village_id] = template if template else original["village_template"]
-        print("Zapisuję nowy wpis w config.json dla wioski %s" % village_id)
-        logging.info("Tworzę nowy wpis konfiguracyjny dla wioski %s", village_id)
+        self.logger.info("[WORK] Zapisuję nowy wpis w config.json dla wioski %s", village_id)
         FileManager.save_json_file(original, "config.json")
-        print("Zapisano nowy plik konfiguracyjny")
-        logging.info("Zapisano nowy plik konfiguracyjny")
+        self.logger.info("[INFO] Zapisano nowy plik konfiguracyjny")
         return original
 
     @staticmethod
@@ -388,18 +386,14 @@ class TWB:
             else:
                 if first_cycle:
                     if not self.villages and config["bot"].get("add_new_villages", False):
-                        print("Rozpoczynam pierwszy cykl i inicjalizuję listę wiosek przed przetwarzaniem")
-                        logging.info("Rozpoczynam pierwszy cykl i inicjalizuję listę wiosek przed przetwarzaniem")
+                        self.logger.info("[WORK] Rozpoczynam pierwszy cykl i inicjalizuję listę wiosek przed przetwarzaniem")
                         config = self.refresh_villages_from_config(config)
                     else:
-                        print("Pomijam odświeżenie listy wiosek w pierwszym cyklu; odświeżenie nastąpi w następnym cyklu")
-                        logging.info("Pomijam odświeżenie listy wiosek w pierwszym cyklu; odświeżenie nastąpi w następnym cyklu")
+                        self.logger.info("[INFO] Pomijam odświeżenie listy wiosek w pierwszym cyklu; odświeżenie nastąpi w następnym cyklu")
                     first_cycle = False
                 else:
-                    print("Rozpoczynam kolejny cykl po przerwie")
-                    logging.info("Rozpoczynam kolejny cykl po przerwie")
-                    print("Odświeżam listę wiosek i ustawień świata przed kolejnym cyklem")
-                    logging.info("Odświeżam listę wiosek i ustawień świata przed kolejnym cyklem")
+                    self.logger.info("[WORK] Rozpoczynam kolejny cykl po przerwie")
+                    self.logger.info("[WORK] Odświeżam listę wiosek i ustawień świata przed kolejnym cyklem")
                     config = self.config()
                     config = self.refresh_villages_from_config(config)
                 village_number = 1
@@ -446,7 +440,7 @@ class TWB:
 
                 if len(defense_states) and config.get("farm_assistant", {}).get("enabled", False):
                     for village in self.villages:
-                        print("Synchronizowanie stanów ataku")
+                        self.logger.info("[WORK] Synchronizowanie stanów ataku")
                         village.def_man.my_other_villages = defense_states
 
                 sleep = 0
