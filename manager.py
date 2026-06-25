@@ -33,5 +33,5 @@ class VillageManager:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(stream=sys.stdout)
+    logging.basicConfig(stream=sys.stdout, format="%(asctime)s - %(levelname)s - %(message)s")
     VillageManager.farm_manager(verbose=True)

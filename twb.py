@@ -44,7 +44,7 @@ from core.extractors import Extractor
 
 coloredlogs.install(
     level=logging.INFO if "-q" not in sys.argv else logging.WARNING,
-    fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    fmt="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 logging.getLogger("requests").setLevel(logging.WARNING)
