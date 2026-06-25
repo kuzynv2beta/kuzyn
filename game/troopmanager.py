@@ -509,7 +509,7 @@ class TroopManager:
                 else:
                     # Gathering already exists or locked
                     break
-        self.logger.info("All gather operations are underway.")
+        self.logger.info("Wszystkie dostępne poziomy zbieractwa są w użyciu.")
         return True
 
     def cancel(self, building, id):
@@ -556,7 +556,7 @@ class TroopManager:
 
         if unit_type not in self.recruit_data:
             self.logger.warning(
-                "Recruitment of %d %s failed because it is not researched"
+                "Problem z rekrutacją %d %s ponieważ nie jest zbadana."
                 % (amount, unit_type)
             )
             self.attempt_research(unit_type)
