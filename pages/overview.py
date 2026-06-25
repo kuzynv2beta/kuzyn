@@ -216,6 +216,15 @@ class OverviewPage:
         self.wrapper: WebWrapper = wrapper
         self.world_settings: WorldSettings = WorldSettings()
         self.result_get: Response = self._get_overview_villages_data()
+        if self.result_get is None:
+            raise ConnectionError(
+                "Nie można pobrać przeglądu wiosek: brak odpowiedzi z serwera. "
+                "Sprawdź połączenie sieciowe i poprawność konfiguracji proxy/cookie."
+            )
+        if getattr(self.result_get, 'status_code', None) != 200:
+            raise ConnectionError(
+                f"Nieprawidłowa odpowiedź serwera dla przeglądu wiosek: HTTP {self.result_get.status_code}"
+            )
         self.soup = BeautifulSoup(self.result_get.text, "html.parser")
         self.header_info = self.soup.find("table", id="header_info")
         self.production_table = self.soup.find("table", id="production_table")

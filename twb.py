@@ -219,7 +219,13 @@ class TWB:
         Gets the overview page to automatically detect world options and owned villages
         """
         self.logger.info("[READ] Pobieram informacje o wioskach z przeglądu świata")
-        overview_page = OverviewPage(self.wrapper)
+        try:
+            overview_page = OverviewPage(self.wrapper)
+        except ConnectionError as e:
+            self.logger.warning("[READ] Nie udało się pobrać przeglądu świata: %s", e)
+            raise RuntimeError(
+                "Nie udało się pobrać przeglądu świata. Sprawdź połączenie sieciowe i ustawienia proxy/cookie."
+            ) from e
         self.found_villages = Extractor.village_ids_from_overview(overview_page.result_get.text)
         if config["bot"].get("add_new_villages", False):
             current_config = self.config()
