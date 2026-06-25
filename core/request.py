@@ -73,7 +73,7 @@ class WebWrapper:
             headers = self.headers
         try:
             res = self.web.get(url=url, headers=headers)
-            self.logger.info("GET %s [%d]", url, res.status_code)
+            self.logger.get("GET %s [%d]", url, res.status_code)
             self.post_process(res)
             if 'data-bot-protect="forced"' in res.text:
                 self.logger.warning("Ochrona przed botami uruchomiona! nie można kontynuować")

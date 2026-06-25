@@ -42,9 +42,47 @@ from pages.overview import OverviewPage
 from core.exceptions import UnsupportedPythonVersion
 from core.extractors import Extractor
 
+LOG_LEVEL_GET = 21
+LOG_LEVEL_READ = 22
+LOG_LEVEL_WORK = 23
+
+logging.addLevelName(LOG_LEVEL_GET, "GET")
+logging.addLevelName(LOG_LEVEL_READ, "READ")
+logging.addLevelName(LOG_LEVEL_WORK, "WORK")
+
+
+def get(self, message, *args, **kwargs):
+    if self.isEnabledFor(LOG_LEVEL_GET):
+        self._log(LOG_LEVEL_GET, message, args, **kwargs)
+
+
+def read(self, message, *args, **kwargs):
+    if self.isEnabledFor(LOG_LEVEL_READ):
+        self._log(LOG_LEVEL_READ, message, args, **kwargs)
+
+
+def work(self, message, *args, **kwargs):
+    if self.isEnabledFor(LOG_LEVEL_WORK):
+        self._log(LOG_LEVEL_WORK, message, args, **kwargs)
+
+
+logging.Logger.get = get
+logging.Logger.read = read
+logging.Logger.work = work
+
 coloredlogs.install(
     level=logging.INFO if "-q" not in sys.argv else logging.WARNING,
-    fmt="%(asctime)s - %(levelname)s - %(message)s",
+    fmt="%(asctime)s - [%(levelname)s] - %(message)s",
+    level_styles={
+        "debug": {"color": "red"},
+        "info": {"color": "green"},
+        "warning": {"color": "red"},
+        "error": {"color": "red"},
+        "critical": {"color": "red", "bold": True},
+        "get": {"color": "blue"},
+        "read": {"color": "yellow"},
+        "work": {"color": "magenta"},
+    },
 )
 
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -218,11 +256,11 @@ class TWB:
         """
         Gets the overview page to automatically detect world options and owned villages
         """
-        self.logger.info("[READ] Pobieram informacje o wioskach z przeglądu świata")
+        self.logger.read("Pobieram informacje o wioskach z przeglądu świata")
         try:
             overview_page = OverviewPage(self.wrapper)
         except ConnectionError as e:
-            self.logger.warning("[READ] Nie udało się pobrać przeglądu świata: %s", e)
+            self.logger.warning("Nie udało się pobrać przeglądu świata: %s", e)
             raise RuntimeError(
                 "Nie udało się pobrać przeglądu świata. Sprawdź połączenie sieciowe i ustawienia proxy/cookie."
             ) from e
@@ -231,7 +269,7 @@ class TWB:
             current_config = self.config()
             for found_vid in self.found_villages:
                 if found_vid not in current_config.get("villages", {}):
-                    self.logger.info("[WORK] Znaleziono wieś %s, brak wpisu w konfiguracji. Dodaję automatycznie", found_vid)
+                    self.logger.work("Znaleziono wieś %s, brak wpisu w konfiguracji. Dodaję automatycznie", found_vid)
                     current_config = self.add_village(village_id=found_vid)
                     if current_config and found_vid not in [v.village_id for v in self.villages]:
                         new_village = Village(wrapper=self.wrapper, village_id=found_vid)
@@ -249,10 +287,10 @@ class TWB:
         overview_page, config = self.get_overview(config)
         has_changed, new_cf = self.get_world_options(overview_page, config)
         if has_changed:
-            self.logger.info("[INFO] Zaktualizowano ustawienia świata")
+            self.logger.info("Zaktualizowano ustawienia świata")
             config = self.merge_configs(config, new_cf)
             FileManager.save_json_file(config, "config.json")
-            self.logger.info("[INFO] Zapisano nowy plik konfiguracyjny")
+            self.logger.info("Zapisano nowy plik konfiguracyjny")
 
         existing_villages = [v.village_id for v in self.villages]
         for vid in config["villages"]:
@@ -278,9 +316,9 @@ class TWB:
             return original
 
         original["villages"][village_id] = template if template else original["village_template"]
-        self.logger.info("[WORK] Zapisuję nowy wpis w config.json dla wioski %s", village_id)
+        self.logger.work("Zapisuję nowy wpis w config.json dla wioski %s", village_id)
         FileManager.save_json_file(original, "config.json")
-        self.logger.info("[INFO] Zapisano nowy plik konfiguracyjny")
+        self.logger.info("Zapisano nowy plik konfiguracyjny")
         return original
 
     @staticmethod
@@ -392,14 +430,14 @@ class TWB:
             else:
                 if first_cycle:
                     if not self.villages and config["bot"].get("add_new_villages", False):
-                        self.logger.info("[WORK] Rozpoczynam pierwszy cykl i inicjalizuję listę wiosek przed przetwarzaniem")
+                        self.logger.work("Rozpoczynam pierwszy cykl i inicjalizuję listę wiosek przed przetwarzaniem")
                         config = self.refresh_villages_from_config(config)
                     else:
-                        self.logger.info("[INFO] Pomijam odświeżenie listy wiosek w pierwszym cyklu; odświeżenie nastąpi w następnym cyklu")
+                        self.logger.info("Pomijam odświeżenie listy wiosek w pierwszym cyklu; odświeżenie nastąpi w następnym cyklu")
                     first_cycle = False
                 else:
-                    self.logger.info("[WORK] Rozpoczynam kolejny cykl po przerwie")
-                    self.logger.info("[WORK] Odświeżam listę wiosek i ustawień świata przed kolejnym cyklem")
+                    self.logger.work("Rozpoczynam kolejny cykl po przerwie")
+                    self.logger.work("Odświeżam listę wiosek i ustawień świata przed kolejnym cyklem")
                     config = self.config()
                     config = self.refresh_villages_from_config(config)
                 village_number = 1
@@ -446,7 +484,7 @@ class TWB:
 
                 if len(defense_states) and config.get("farm_assistant", {}).get("enabled", False):
                     for village in self.villages:
-                        self.logger.info("[WORK] Synchronizowanie stanów ataku")
+                        self.logger.work("Synchronizowanie stanów ataku")
                         village.def_man.my_other_villages = defense_states
 
                 sleep = 0
