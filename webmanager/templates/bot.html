@@ -97,14 +97,19 @@
 .log-ts{color:#9aa4ad; margin-right:6px; opacity:0.9}
 .log-logger{color:inherit; margin-right:6px}
 .log-level{font-weight:700; padding:2px 6px; border-radius:4px; margin-right:6px; font-size:11px}
-.level-info .log-level{background:#e6f4ea; color:#0b6b24}
-.level-warn .log-level{background:#fdecea; color:#8a1f1f}
-.level-error .log-level{background:#fdecea; color:#8a1f1f}
-.level-debug .log-level{background:#eef3ff; color:#1f4fa8}
+.level-info .log-level{background:#2d6a2d; color:#ffffff}
+.level-get .log-level{background:#1c4ea1; color:#ffffff}
+.level-read .log-level{background:#c47b0c; color:#ffffff}
+.level-work .log-level{background:#8b3299; color:#ffffff}
+.level-warn .log-level{background:#b02b2b; color:#ffffff}
+.level-error .log-level{background:#b02b2b; color:#ffffff}
+.level-debug .log-level{background:#1f4fa8; color:#ffffff}
 .log-msg{color:inherit}
 .line-default{color:#d4af37}
 .line-info{color:#73b22f}
 .line-get{color:#5fb3ff}
+.line-read{color:#ffb347}
+.line-work{color:#d36cff}
 .line-http{color:#5fb3ff}
 .line-request{color:#ff9f1c}
 .line-feature{color:#ffd966}
@@ -116,6 +121,10 @@
 #http-console .log-line.line-info { color:#73b22f !important; }
 #bot-console .log-line.line-get,
 #http-console .log-line.line-get { color:#5fb3ff !important; }
+#bot-console .log-line.line-read,
+#http-console .log-line.line-read { color:#ffb347 !important; }
+#bot-console .log-line.line-work,
+#http-console .log-line.line-work { color:#d36cff !important; }
 #bot-console .log-line.line-http,
 #http-console .log-line.line-http { color:#5fb3ff !important; }
 #bot-console .log-line.line-request,
@@ -150,21 +159,21 @@ function stripAnsi(s){
 function formatLogLine(line, kind){
     if(!line) return '';
     line = stripAnsi(line);
-    // Try to parse: timestamp - logger - LEVEL - message
-    var m = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d{3})?) - (.*?) - ([A-Z]+) - (.*)$/);
+    // Try to parse: timestamp - [LEVEL] - message (bot log format)
+    var m = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d{3})?) - \[([A-Z]+)\] - (.*)$/);
     var ts = '', logger = '', level = '', msg = line;
     if(m){
-        ts = m[1]; logger = m[2]; level = m[3]; msg = m[4];
+        ts = m[1]; level = m[2]; msg = m[3];
     } else {
-        // Try default space-delimited format: timestamp logger LEVEL message
-        m = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d{3})?)\s+([^\s]+)\s+([A-Z]+)\s+(.*)$/);
+        // Try default space-delimited format: timestamp logger [LEVEL] message
+        m = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d{3})?)\s+([^\s]+)\s+\[([A-Z]+)\]\s+(.*)$/);
         if(m){
             ts = m[1]; logger = m[2]; level = m[3]; msg = m[4];
         } else {
             // Fallback: try other separator ' - '
             var parts = line.split(' - ');
             if(parts.length >= 4){
-                ts = parts[0]; logger = parts[1]; level = parts[2]; msg = parts.slice(3).join(' - ');
+                ts = parts[0]; logger = parts[1]; level = parts[2].replace(/\[|\]/g, ''); msg = parts.slice(3).join(' - ');
             }
         }
     }
@@ -198,11 +207,14 @@ function formatLogLine(line, kind){
 
     if(isRequestLogger || /żądania/.test(msg.toLowerCase())){
         lineClass = 'line-request';
-    } else if(isHttpMethod){
+    } else if(isHttpMethod && lineClass === 'line-default'){
         lineClass = 'line-http';
-    } else if(isFeatureLog){
+    } else if(isFeatureLog && lineClass === 'line-default'){
         lineClass = 'line-feature';
     }
+
+    // Remove redundant bracketed tag from beginning of message
+    msg = msg.replace(/^\[(GET|READ|WORK|INFO|WARN|WARNING|DEBUG|ERROR|CRITICAL)\]\s*/i, '');
 
     var html = '<div class="log-line '+levelClass+' '+lineClass+'">';
     if(ts) html += '<span class="log-ts">'+escapeHtml(ts)+'</span> ';

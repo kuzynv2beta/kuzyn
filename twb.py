@@ -74,14 +74,14 @@ coloredlogs.install(
     level=logging.INFO if "-q" not in sys.argv else logging.WARNING,
     fmt="%(asctime)s - [%(levelname)s] - %(message)s",
     level_styles={
-        "debug": {"color": "red"},
-        "info": {"color": "green"},
-        "warning": {"color": "red"},
-        "error": {"color": "red"},
-        "critical": {"color": "red", "bold": True},
-        "get": {"color": "blue"},
-        "read": {"color": "yellow"},
-        "work": {"color": "magenta"},
+        "debug": {"color": "white", "background": "red"},
+        "info": {"color": "white", "background": "green"},
+        "warning": {"color": "white", "background": "red"},
+        "error": {"color": "white", "background": "red"},
+        "critical": {"color": "white", "background": "red", "bold": True},
+        "get": {"color": "white", "background": "blue"},
+        "read": {"color": "black", "background": "yellow"},
+        "work": {"color": "white", "background": "magenta"},
     },
 )
 
