@@ -358,10 +358,18 @@ class TWB:
             return
         self.wrapper.headers["user-agent"] = config["bot"]["user_agent"]
 
-        self.villages = []
-        print("Pierwsze sprawdzenie listy wiosek i ustawień świata")
-        logging.info("Pierwsze sprawdzenie listy wiosek i ustawień świata")
-        config = self.refresh_villages_from_config(config)
+        self.villages = [
+            Village(wrapper=self.wrapper, village_id=vid)
+            for vid in config.get("villages", {})
+        ]
+        self.found_villages = list(config.get("villages", {}).keys())
+        if not self.villages and config["bot"].get("add_new_villages", False):
+            print("Konfiguracja nie zawiera jeszcze wiosek, szukam ich na stronie overview")
+            logging.info("Konfiguracja nie zawiera jeszcze wiosek, szukam ich na stronie overview")
+            config = self.refresh_villages_from_config(config)
+        else:
+            print("Startuję pierwszą pętlę bez odświeżania listy wiosek")
+            logging.info("Startuję pierwszą pętlę bez odświeżania listy wiosek")
 
         # setup additional builder
         rm = None
