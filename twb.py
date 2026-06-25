@@ -456,11 +456,7 @@ class TWB:
                 self.runs += 1
 
                 VillageManager.farm_manager(verbose=True)
-                print(
-                    "Kończę cykl. Uśpienie przez %.2f minut (następne uruchomienie: %s)"
-                    % (sleep / 60, dt_next.time())
-                )
-                logging.info(
+                self.logger.info(
                     "Kończę cykl po %s sekundach, następny cykl rozpocznie się o %s",
                     sleep,
                     dt_next.time(),
