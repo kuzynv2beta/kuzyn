@@ -22,7 +22,7 @@ class VillageManager:
                 config = {}
 
         if verbose:
-            logger.info("Wsie: %d", len(config.get("villages", {})))
+            logger.info("Wioski: %d", len(config.get("villages", {})))
         attacks = AttackCache.cache_grab()
 
         if verbose:
