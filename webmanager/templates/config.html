@@ -92,6 +92,16 @@
       $('#save_config').removeClass('disabled').prop('disabled', false);
 	}
 
+	function list_event(event) {
+      var target = $(event.target);
+      var name = target.attr("data-type-option");
+      if(name == undefined) alert("Error setting target");
+      var value = target.val() || "";
+      var items = value.split(',').map(function(item) { return item.trim(); }).filter(function(item) { return item !== ""; });
+      set_values[name] = JSON.stringify(items);
+      $('#save_config').removeClass('disabled').prop('disabled', false);
+	}
+
 	function collectFarmAssistantRules() {
 		var rules = [];
 		var name = $('.farm-assistant-rules .add-farm-assistant-rule').attr('data-type-option') || 'farm_assistant_rules';
@@ -168,6 +178,10 @@
 
 		$( "[data-type=text]" ).change(function(e) {
 		  text_event(e);
+		});
+
+		$( "[data-type=list]" ).change(function(e) {
+		  list_event(e);
 		});
 
 		$(document).on('change', '.farm-assistant-rule-input', function() {

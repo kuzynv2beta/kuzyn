@@ -127,6 +127,9 @@ def pre_process_string(key, value, village_id=None):
             return '<textarea class="form-control" rows="6" data-village-id="%s" data-type="text" data-type-option="%s">%s</textarea>' % (village_id, key, pretty)
         return '<textarea class="form-control" rows="6" data-type="text" data-type-option="%s">%s</textarea>' % (key, pretty)
 
+    if value is None:
+        value = ''
+
     if village_id:
         return '<input type="text" class="form-control" data-village-id="%s" data-type="text" value="%s" data-type-option="%s" />' % (
         village_id, value, key)
@@ -263,6 +266,8 @@ def pre_process_farm_assistant_rules(config_section, village_id=None):
 
 
 def pre_process_number(key, value, village_id=None):
+    if value is None:
+        value = ''
     if village_id:
         return '<input type="number" data-type="number" class="form-control" data-village-id="%s" value="%s" data-type-option="%s" />' % (
         village_id, value, key)
@@ -271,11 +276,19 @@ def pre_process_number(key, value, village_id=None):
 
 
 def pre_process_list(key, value, village_id=None):
+    if value is None:
+        value = []
+    if not isinstance(value, list):
+        try:
+            value = list(value)
+        except Exception:
+            value = [str(value)]
+    value_str = ', '.join(value)
     if village_id:
         return '<input type="text" data-type="list" class="form-control" data-village-id="%s" value="%s" data-type-option="%s" />' % (
-        village_id, ', '.join(value), key)
-    return '<input type="number" data-type="list" class="form-control" value="%s" data-type-option="%s" />' % (
-    ', '.join(value), key)
+        village_id, value_str, key)
+    return '<input type="text" data-type="list" class="form-control" value="%s" data-type-option="%s" />' % (
+    value_str, key)
 
 
 def fancy(key):
@@ -329,13 +342,15 @@ def pre_process_config():
                     )
                     skip_params.update(rule_keys)
                     continue
-            if type(value) == bool:
-                config_data += '%s %s' % (fancy(kvp), pre_process_bool(kvp, value))
-            if type(value) == str:
+            if value is None:
                 config_data += '%s %s' % (fancy(kvp), pre_process_string(kvp, value))
-            if type(value) == list:
+            elif type(value) == bool:
+                config_data += '%s %s' % (fancy(kvp), pre_process_bool(kvp, value))
+            elif type(value) == str:
+                config_data += '%s %s' % (fancy(kvp), pre_process_string(kvp, value))
+            elif type(value) == list:
                 config_data += '%s %s' % (fancy(kvp), pre_process_list(kvp, value))
-            if type(value) == int or type(value) == float:
+            elif type(value) == int or type(value) == float:
                 config_data += '%s %s' % (fancy(kvp), pre_process_number(kvp, value))
         sections[section] = config_data
     return sections
@@ -381,13 +396,15 @@ def pre_process_village_config(village_id):
             )
             skip_params.update(rule_keys)
             continue
-        if type(value) == bool:
-            config_data += '%s %s' % (fancy(kvp), pre_process_bool(kvp, value, village_id))
-        if type(value) == str:
+        if value is None:
             config_data += '%s %s' % (fancy(kvp), pre_process_string(kvp, value, village_id))
-        if type(value) == list:
+        elif type(value) == bool:
+            config_data += '%s %s' % (fancy(kvp), pre_process_bool(kvp, value, village_id))
+        elif type(value) == str:
+            config_data += '%s %s' % (fancy(kvp), pre_process_string(kvp, value, village_id))
+        elif type(value) == list:
             config_data += '%s %s' % (fancy(kvp), pre_process_list(kvp, value, village_id))
-        if type(value) == int or type(value) == float:
+        elif type(value) == int or type(value) == float:
             config_data += '%s %s' % (fancy(kvp), pre_process_number(kvp, value, village_id))
     return config_data
 
