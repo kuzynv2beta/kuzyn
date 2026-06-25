@@ -549,7 +549,7 @@ class Village:
                 link = None
 
             if not link:
-                self.logger.info("Brak farm assistant linku dla %s, pomijam cel", vid)
+                self.logger.info("Brak dostępnego przycisku dla %s, pomijam cel", vid)
                 continue
 
             cached = self.attack.can_attack(vid=vid, clear=False)
