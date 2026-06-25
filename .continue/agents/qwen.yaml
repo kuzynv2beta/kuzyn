@@ -1,0 +1,29 @@
+name: Qwen2.5-Coder Local (14B + 1.5B)
+version: 0.0.1
+schema: v1
+
+models:
+  # === Duży model - do czatu, edycji i apply ===
+  - name: Qwen2.5-Coder 14B
+    provider: ollama
+    model: qwen2.5-coder:14b
+    apiBase: http://localhost:11434
+    roles:
+      - chat
+      - edit
+      - apply
+
+  # === Mały szybki model - tylko do autocomplete (Tab) ===
+  - name: Qwen2.5-Coder 1.5B (Autocomplete)
+    provider: ollama
+    model: qwen2.5-coder:1.5b
+    apiBase: http://localhost:11434
+    roles:
+      - autocomplete
+
+  # === Embeddings do @codebase ===
+  - name: Nomic Embed
+    provider: ollama
+    model: nomic-embed-text
+    roles:
+      - embed
