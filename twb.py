@@ -363,13 +363,6 @@ class TWB:
             for vid in config.get("villages", {})
         ]
         self.found_villages = list(config.get("villages", {}).keys())
-        if not self.villages and config["bot"].get("add_new_villages", False):
-            print("Konfiguracja nie zawiera jeszcze wiosek, szukam ich na stronie overview")
-            logging.info("Konfiguracja nie zawiera jeszcze wiosek, szukam ich na stronie overview")
-            config = self.refresh_villages_from_config(config)
-        else:
-            print("Startuję pierwszą pętlę bez odświeżania listy wiosek")
-            logging.info("Startuję pierwszą pętlę bez odświeżania listy wiosek")
 
         # setup additional builder
         rm = None
@@ -393,15 +386,22 @@ class TWB:
                 )
                 time.sleep(sleep)
             else:
-                if not first_cycle:
+                if first_cycle:
+                    if not self.villages and config["bot"].get("add_new_villages", False):
+                        print("Rozpoczynam pierwszy cykl i inicjalizuję listę wiosek przed przetwarzaniem")
+                        logging.info("Rozpoczynam pierwszy cykl i inicjalizuję listę wiosek przed przetwarzaniem")
+                        config = self.refresh_villages_from_config(config)
+                    else:
+                        print("Pomijam odświeżenie listy wiosek w pierwszym cyklu; odświeżenie nastąpi w następnym cyklu")
+                        logging.info("Pomijam odświeżenie listy wiosek w pierwszym cyklu; odświeżenie nastąpi w następnym cyklu")
+                    first_cycle = False
+                else:
+                    print("Rozpoczynam kolejny cykl po przerwie")
+                    logging.info("Rozpoczynam kolejny cykl po przerwie")
                     print("Odświeżam listę wiosek i ustawień świata przed kolejnym cyklem")
                     logging.info("Odświeżam listę wiosek i ustawień świata przed kolejnym cyklem")
                     config = self.config()
                     config = self.refresh_villages_from_config(config)
-                else:
-                    print("Pomijam odświeżenie listy wiosek w cyklu startowym")
-                    logging.info("Pomijam odświeżenie listy wiosek w cyklu startowym")
-                    first_cycle = False
                 village_number = 1
                 for village in self.villages:
                     if village.village_id not in self.found_villages:
@@ -463,8 +463,13 @@ class TWB:
 
                 VillageManager.farm_manager(verbose=True)
                 print(
-                    "Dead for %.2f minutes (next run at: %s)"
+                    "Kończę cykl. Uśpienie przez %.2f minut (następne uruchomienie: %s)"
                     % (sleep / 60, dt_next.time())
+                )
+                logging.info(
+                    "Kończę cykl po %s sekundach, następny cykl rozpocznie się o %s",
+                    sleep,
+                    dt_next.time(),
                 )
                 sys.stdout.flush()
                 time.sleep(sleep)
